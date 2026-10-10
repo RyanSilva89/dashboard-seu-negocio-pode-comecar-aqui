@@ -1,9 +1,9 @@
 export type Priority = 'Alta provisória' | 'Média-alta provisória' | 'Média provisória' | 'Média-baixa provisória' | 'Baixa provisória'
-export type SiteStatus = 'Confirmado' | 'Não localizado nas fontes consultadas'
+export type SiteStatus = 'Confirmado' | 'Não localizado nas fontes consultadas' | 'Informado na planilha · não verificado' | 'Não informado na planilha'
 
 export type LeadSource = {
   label: string
-  url: string
+  url?: string
   supports: string
 }
 
@@ -12,9 +12,11 @@ export type Lead = {
   name: string
   specialty: string
   address: string
-  contacts: { label: string; value: string; type: 'direto' | 'diretório' | 'social' }[]
+  contacts: { label: string; value: string; type: 'direto' | 'diretório' | 'social' | 'planilha' }[]
   website: string | null
   websiteStatus: SiteStatus
+  city?: string
+  niche?: string
   instagram?: string
   services: string
   scheduling: string
@@ -24,6 +26,8 @@ export type Lead = {
   priorityReason: string
   confidence: string
   sources: LeadSource[]
+  origin?: 'pesquisa' | 'planilha'
+  importedAt?: string
 }
 
 export const researchedAt = '10/10/2026'
@@ -306,5 +310,99 @@ export const leads: Lead[] = [
       { label: 'Instagram da clínica', url: 'https://www.instagram.com/clinica_alahmar_fisioterapia/', supports: 'Endereço e canais sociais/comerciais.' },
       { label: 'Diretório Agendar Consulta', url: 'https://guia.agendarconsulta.com/sao-paulo/campinas/clinica-alahmar-7146736', supports: 'Cadastro secundário com endereço divergente.' },
     ],
+  },
+  {
+    id: 'planeta-grill-jp',
+    name: 'Planeta Grill JP',
+    specialty: 'Não informado',
+    address: 'Localização não confirmada. Foi encontrada uma ficha Tabelog de um Planeta Grill homônimo em Nagoya, mas o vínculo com o perfil indicado não foi confirmado.',
+    contacts: [
+      { label: 'Instagram indicado pelo usuário', value: 'https://www.instagram.com/planeta_grill_jp/', type: 'social' },
+    ],
+    website: null,
+    websiteStatus: 'Não localizado nas fontes consultadas',
+    city: 'Não informado',
+    niche: 'Não informado',
+    instagram: 'https://www.instagram.com/planeta_grill_jp/',
+    services: 'Não confirmados. A ficha Tabelog de Planeta Grill em Nagoya descreve restaurante brasileiro, mas não estabelece associação com o Instagram informado.',
+    scheduling: 'Não confirmado no perfil. A ficha homônima da Tabelog menciona reserva, mas essa informação não foi atribuída ao perfil enviado.',
+    evidence: [
+      'Perfil enviado pelo usuário; a consulta direta ao Instagram redirecionou para a tela de login, portanto o conteúdo atual não foi confirmado.',
+      'Foi encontrada uma ficha homônima da Tabelog para restaurante brasileiro em Nagoya; não há link explícito entre essa ficha e @planeta_grill_jp. Cidade, nicho e contatos permanecem sem confirmação.',
+      'Nenhum site próprio foi identificado nas fontes consultadas; isso não prova que não exista.',
+    ],
+    offer: 'Confirmar primeiro se o perfil corresponde à ficha homônima de Nagoya. Não qualificar uma oferta até validar identidade, cidade e atividade.',
+    priority: 'Baixa provisória',
+    priorityReason: 'A correspondência entre o perfil e a ficha de restaurante ainda está pendente; manter fora de qualquer abordagem até verificar.',
+    confidence: 'Baixa para cidade, nicho e identidade comercial. A ficha Tabelog é de negócio homônimo e não foi vinculada ao perfil.',
+    sources: [
+      { label: 'Instagram indicado pelo usuário', url: 'https://www.instagram.com/planeta_grill_jp/', supports: 'Perfil informado; acesso direto exigiu login.' },
+      { label: 'Tabelog — ficha homônima', url: 'https://tabelog.com/en/aichi/A2301/A230102/23038801/', supports: 'Registra um Planeta Grill em Nagoya como restaurante brasileiro; associação ao perfil não confirmada.' },
+    ],
+    origin: 'pesquisa',
+  },
+  {
+    id: 'cantinho-do-viaduto',
+    name: 'Cantinho do Viaduto',
+    specialty: 'Buffet / restaurante por quilo',
+    address: 'Rua Aristides Viadana, 62, box 4, São Paulo–SP, CEP 05065-140 (página do Facebook).',
+    contacts: [
+      { label: 'Telefone publicado no Facebook', value: '+55 11 3611-1907', type: 'direto' },
+      { label: 'WhatsApp publicado no Facebook', value: '+55 11 99410-7481', type: 'direto' },
+    ],
+    website: null,
+    websiteStatus: 'Não localizado nas fontes consultadas',
+    city: 'São Paulo, SP',
+    niche: 'Buffet / restaurante por quilo',
+    instagram: 'https://www.instagram.com/cantinhodoviaduto/',
+    services: 'A página Facebook classifica o negócio como buffet restaurant; o perfil indexado do Instagram o descreve como restaurante por quilo.',
+    scheduling: 'Nenhum sistema online de reserva ou pedido foi confirmado nas fontes consultadas.',
+    evidence: [
+      'A seção Sobre da página Facebook com o mesmo nome publica endereço, cidade, categoria e dois telefones.',
+      'A localização do Instagram identifica Cantinho do Viaduto como Buffet Restaurant. O perfil direto exigiu login; a ligação entre as contas é provável pelo nome, mas não foi publicada como link cruzado no conteúdo acessado.',
+      'Nenhum site próprio foi localizado nas páginas consultadas; isso não prova inexistência.',
+    ],
+    offer: 'Se houver interesse, investigar se um cardápio digital, página de informações ou fluxo de pedidos seria útil. Não presumir que o negócio precise de site ou automação.',
+    priority: 'Baixa provisória',
+    priorityReason: 'Cidade, categoria e contatos aparecem na página Facebook; vínculo com o perfil Instagram e necessidades digitais ainda precisam de validação.',
+    confidence: 'Alta para endereço, categoria e telefones publicados no Facebook; moderada para a associação com o Instagram indicado.',
+    sources: [
+      { label: 'Instagram indicado pelo usuário', url: 'https://www.instagram.com/cantinhodoviaduto/', supports: 'Perfil enviado; acesso direto exigiu login.' },
+      { label: 'Localização no Instagram', url: 'https://www.instagram.com/explore/locations/592128507/cantinho-do-viaduto/', supports: 'Nome da localização e categoria Buffet Restaurant.' },
+      { label: 'Facebook — Sobre', url: 'https://www.facebook.com/cantinhodoviaduto/about', supports: 'Endereço, cidade, categoria e telefones divulgados pela página.' },
+    ],
+    origin: 'pesquisa',
+  },
+  {
+    id: 'clinica-nunes-estetica-avancada',
+    name: 'Clínica Nunes Estética Avançada (vínculo do perfil a confirmar)',
+    specialty: 'Estética avançada; harmonização facial e perfiloplastia mencionadas em resultado indexado',
+    address: 'Uberaba–MG (página pública do Facebook). Diretório Telu não reivindicado lista Rua Alaor Prata, 23, Centro, CEP 38010-060; endereço não confirmado pela clínica.',
+    contacts: [
+      { label: 'E-mail da página Facebook (validar vínculo)', value: 'nunesesteticaavancada@gmail.com', type: 'social' },
+    ],
+    website: null,
+    websiteStatus: 'Não localizado nas fontes consultadas',
+    city: 'Uberaba, MG',
+    niche: 'Estética avançada',
+    instagram: 'https://www.instagram.com/clinicanunes.esteticaavancada/',
+    services: 'O resultado indexado do perfil enviado menciona harmonização facial e perfiloplastia; a página Facebook da clínica informa saúde/beleza. O perfil direto não pôde ser lido sem login.',
+    scheduling: 'O resultado indexado do Instagram convida a agendar avaliação; não foi confirmado um calendário de reservas online.',
+    evidence: [
+      'A página Facebook de Clínica Nunes Estética Avançada informa Uberaba–MG, atividade de saúde/beleza e e-mail.',
+      'A página Facebook vincula outro handle de Instagram (@nunes.esteticaavancada), não o @clinicanunes.esteticaavancada enviado pelo usuário; confirmar se pertencem ao mesmo negócio.',
+      'A ficha Telu é explicitamente não reivindicada. Ela lista endereço e telefone, mas o número não foi incluído como contato porque difere do WhatsApp exibido na página Facebook.',
+      'Telu não lista site profissional; isso não prova que não exista site próprio.',
+    ],
+    offer: 'Depois de confirmar o vínculo do perfil, perguntar se a apresentação dos serviços e o caminho para solicitar avaliação atendem aos objetivos da clínica; não presumir falha ou demanda.',
+    priority: 'Baixa provisória',
+    priorityReason: 'Cidade e categoria têm apoio em páginas públicas; handle, endereço de rua e telefones têm ressalvas pendentes.',
+    confidence: 'Moderada para Uberaba e o nicho; baixa para vincular o Instagram enviado às páginas secundárias e para o contato telefônico.',
+    sources: [
+      { label: 'Instagram indicado pelo usuário', url: 'https://www.instagram.com/clinicanunes.esteticaavancada/', supports: 'Perfil enviado; acesso direto exigiu login. Resultado indexado associa serviços e Uberaba–MG.' },
+      { label: 'Facebook — Clínica Nunes', url: 'https://www.facebook.com/p/Cl%C3%ADnica-Nunes-Est%C3%A9tica-Avan%C3%A7ada-61590208472575/', supports: 'Cidade, categoria saúde/beleza, e-mail e outro handle de Instagram.' },
+      { label: 'Telu — ficha não reivindicada', url: 'https://telu.app/ranking/br/clinica-estetica/estetica-avancada/uberaba/centro/clinica-nunes-estetica-avancada-chijzv', supports: 'Nicho, endereço e telefone de diretório; a página informa que os dados podem estar incompletos.' },
+    ],
+    origin: 'pesquisa',
   },
 ]

@@ -1,5 +1,5 @@
 {
-  "name": "prospecta-campinas",
+  "name": "seu-site-pode-comecar-aqui",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "lucide-react": "1.54.0",
+    "papaparse": "5.7.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "read-excel-file": "9.3.12"
   },
   "devDependencies": {
+    "@types/papaparse": "5.5.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
