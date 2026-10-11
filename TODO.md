@@ -33,6 +33,10 @@
 - [x] **Pontuação explicável de 0 a 100:** calcular prioridade de prospecção somente com oportunidades de serviço marcadas por usuário e sinais/dados verificados; 0 somente quando o usuário marca “nenhum serviço” ou todos os serviços conhecidos como “Não se aplica”; avaliação ainda não feita aparece como “não avaliado”, não 0. A partir de 50, indicar que cabe confirmar o encaixe; mostrar pontos/critério e deixar explícito que score não é probabilidade nem intenção de compra. Temperatura fria/morna/quente depende de resposta, necessidade confirmada ou pedido de proposta — nunca somente do score. Uma necessidade pontuada como confirmada pelo negócio também exige estado de interesse compatível, evidência da interação e data.
 - [x] **Pronto para contato e métricas locais do pipeline:** incluir estágio “Pronto para contato” e só permitir avanço após identidade, canal e fonte/data conferidos, ao menos um serviço compatível e score ≥ 50; registrar “Contato feito” para calcular resposta. Exigir transições sequenciais, sem saltar diretamente a conversa, proposta ou cliente. Se a validação perder elegibilidade em “Pronto para contato” ou “Contato feito”, voltar para “Qualificar”; etapas posteriores permanecem como histórico de interação, mas só entram nas taxas enquanto o gate atual for válido. No CRM, mostrar cobertura de dados validados e prontos para contato, taxa de resposta = leads que responderam ÷ leads com contato feito ou resposta, e taxa de proposta = propostas/ganhos ÷ leads em conversa, proposta ou ganho; exibir “—” sem denominador e manter todas as métricas no navegador.
 
+## Navegação e rolagem
+
+- [x] **Rolagem independente por área:** manter a navegação lateral visível durante o uso; deixar a rolagem dentro do conteúdo principal, sem rolar o documento inteiro; ao mudar de seção, voltar o conteúdo principal ao topo; manter menu e rolagem utilizáveis em telas menores.
+
 ## Próximo recorte a definir
 
 - [ ] **Pesquisa de novos leads públicos:** iniciar a pesquisa somente após definir cidades, nichos e quantidade desejada por combinação; o painel não cria nem busca leads automaticamente ao cadastrar um alvo.

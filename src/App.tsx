@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -162,6 +162,10 @@ function isNeedsReview(qualification: LeadQualification = createDefaultQualifica
 
 function App() {
   const [page, setPage] = useState<PageKey>('dashboard')
+  const mainAreaRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    mainAreaRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [page])
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [state, setState] = useState<LocalState>(readState)
@@ -275,6 +279,7 @@ function App() {
 
   function openPage(nextPage: PageKey) {
     setPage(nextPage)
+    mainAreaRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
     setDrawerOpen(false)
     setSelectedLead(null)
   }
@@ -323,7 +328,7 @@ function App() {
         </div>
       </aside>
 
-      <div className="main-area">
+      <div className="main-area" ref={mainAreaRef}>
         <header className="topbar">
           <div className="topbar-left">
             <button className="icon-button mobile-menu" aria-label="Abrir menu" onClick={() => setDrawerOpen(true)}><Menu size={21} /></button>
