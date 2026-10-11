@@ -25,12 +25,15 @@ Use uma cópia por negócio. O objetivo é confirmar fatos públicos antes de pr
 
 - [ ] Identifiquei um sinal específico que poderia justificar um serviço que eu ofereço.
 - [ ] Mantive o sinal como **hipótese** — um perfil, site ou WhatsApp publicado não prova que exista uma necessidade.
-- [ ] Só marquei necessidade como **confirmada pelo negócio** se houve conversa e registrei evidência e data.
+- [ ] Guardei URL e nota do sinal público separadamente da confirmação do negócio; não substituí uma evidência pela outra.
+- [ ] Só marquei necessidade como **confirmada pelo negócio** se houve conversa e registrei a confirmação daquele serviço, evidência e data.
 
 ## 5. Decisão no CRM
 
 - [ ] Deixei a ficha em revisão se alguma identidade, contato ou fonte continua sem confirmação.
-- [ ] Só avancei para “Pronto para contato” após validar identidade e canal, registrar fonte/nota/data, encontrar um serviço compatível e atingir score mínimo de 50 no CRM.
+- [ ] Registrei as fases separadamente: score público até 80 e confirmação do cliente até 20. Resposta simples vale +0 (atualiza temperatura/taxa de resposta); necessidade confirmada vale +12 e proposta solicitada vale +20, com serviço, evidência e data. O final é a soma até 100, nunca uma probabilidade de compra.
+- [ ] Se o negócio recusou, registrei “recusou / sem interesse”, não marquei como morno nem dei bônus; se a prospecção terminou, movi manualmente o lead para “Sem prioridade” para removê-lo do Ranking ativo.
+- [ ] Só avancei para “Pronto para contato” após validar identidade e canal, registrar fonte/nota/data, encontrar um serviço compatível e atingir **score público mínimo de 50** no CRM. Bônus obtido depois da conversa não libera o primeiro contato retroativamente.
 - [ ] Não tratei o score como probabilidade de compra nem usei o score, sozinho, para classificar o lead como quente.
 
 ### Ficha para copiar e preencher
@@ -46,6 +49,9 @@ Use uma cópia por negócio. O objetivo é confirmar fatos públicos antes de pr
 - **Status:** confirmado / parcial / divergente / acesso restrito
 - **Sinal de serviço possível (hipótese):**
 - **Necessidade confirmada pelo negócio?** não / sim — evidência e data:
+- **Score público /80:**
+- **Bônus documentado do cliente /20:**
+- **Score final /100:**
 - **Próximo passo:**
 
 > Se a rede exigir login, use o app ou navegador oficial manualmente. Não compartilhe senha/cookies com extensões, não contorne bloqueios e não automatize coleta sem autorização da plataforma. Dados e notas do CRM deste projeto permanecem locais no navegador.

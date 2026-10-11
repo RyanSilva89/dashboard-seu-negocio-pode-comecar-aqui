@@ -5,14 +5,16 @@ export const serviceOptions = [
 ] as const
 
 export type ServiceId = typeof serviceOptions[number]['id']
-export type OpportunityStatus = 'not-assessed' | 'public-signal' | 'client-confirmed' | 'not-fit'
+export type OpportunityStatus = 'not-assessed' | 'public-signal' | 'not-fit'
 export type CheckStatus = 'not-checked' | 'confirmed' | 'mismatch' | 'access-restricted'
-export type InterestStatus = 'no-response' | 'responded' | 'need-confirmed' | 'proposal-requested'
+export type InterestStatus = 'no-response' | 'responded' | 'declined' | 'need-confirmed' | 'proposal-requested'
 
 export type OpportunityAssessment = {
   status: OpportunityStatus
   evidenceNote: string
   evidenceSource: string
+  clientConfirmed: boolean
+  clientConfirmationNote: string
 }
 
 export type LeadQualification = {
@@ -34,7 +36,31 @@ export type LeadQualification = {
 
 export type ScoreLine = { label: string; points: number; detail: string }
 
+export const scoringWeights = {
+  publicSignalPerService: 20,
+  identityConfirmed: 8,
+  contactConfirmed: 8,
+  sourceAndNote: 2,
+  validationDate: 2,
+  confirmedNeed: 12,
+  requestedProposal: 20,
+  minimumPublicScoreToContact: 50,
+  mediumPotentialThreshold: 50,
+  highPriorityThreshold: 70,
+  veryHighPriorityThreshold: 85,
+  maxPublicScore: 80,
+  maxClientBonus: 20,
+  maxTotalScore: 100,
+} as const
+
 export function createDefaultQualification(): LeadQualification {
+  const emptyOpportunity = (): OpportunityAssessment => ({
+    status: 'not-assessed',
+    evidenceNote: '',
+    evidenceSource: '',
+    clientConfirmed: false,
+    clientConfirmationNote: '',
+  })
   return {
     identityStatus: 'not-checked',
     contactStatus: 'not-checked',
@@ -44,9 +70,9 @@ export function createDefaultQualification(): LeadQualification {
     verificationNote: '',
     verificationDate: '',
     opportunities: {
-      site: { status: 'not-assessed', evidenceNote: '', evidenceSource: '' },
-      automation: { status: 'not-assessed', evidenceNote: '', evidenceSource: '' },
-      instagram: { status: 'not-assessed', evidenceNote: '', evidenceSource: '' },
+      site: emptyOpportunity(),
+      automation: emptyOpportunity(),
+      instagram: emptyOpportunity(),
     },
     noRelevantService: false,
     nextAction: '',
@@ -58,25 +84,47 @@ export function createDefaultQualification(): LeadQualification {
 }
 
 const checkStatuses: CheckStatus[] = ['not-checked', 'confirmed', 'mismatch', 'access-restricted']
-const opportunityStatuses: OpportunityStatus[] = ['not-assessed', 'public-signal', 'client-confirmed', 'not-fit']
-const interestStatuses: InterestStatus[] = ['no-response', 'responded', 'need-confirmed', 'proposal-requested']
+const opportunityStatuses: OpportunityStatus[] = ['not-assessed', 'public-signal', 'not-fit']
+const interestStatuses: InterestStatus[] = ['no-response', 'responded', 'declined', 'need-confirmed', 'proposal-requested']
 
 export function normalizeQualification(value: unknown): LeadQualification {
   const defaults = createDefaultQualification()
   if (!value || typeof value !== 'object' || Array.isArray(value)) return defaults
   const input = value as Partial<LeadQualification>
-  const rawOpportunities = input.opportunities && typeof input.opportunities === 'object' ? input.opportunities : {}
+  const rawOpportunities = input.opportunities && typeof input.opportunities === 'object'
+    ? input.opportunities as unknown as Record<string, unknown>
+    : {}
   const opportunities = { ...defaults.opportunities }
+
   for (const option of serviceOptions) {
-    const raw = (rawOpportunities as Partial<Record<ServiceId, OpportunityAssessment>>)[option.id]
-    if (!raw || typeof raw !== 'object') continue
+    const rawValue = rawOpportunities[option.id]
+    if (!rawValue || typeof rawValue !== 'object' || Array.isArray(rawValue)) continue
+    const raw = rawValue as Record<string, unknown>
+    const legacyClientConfirmed = raw.status === 'client-confirmed'
+    const status = legacyClientConfirmed
+      ? 'not-assessed'
+      : opportunityStatuses.includes(raw.status as OpportunityStatus)
+        ? raw.status as OpportunityStatus
+        : 'not-assessed'
+    const oldEvidenceNote = typeof raw.evidenceNote === 'string' ? raw.evidenceNote : ''
+    const clientConfirmed = status !== 'not-fit' && (legacyClientConfirmed || raw.clientConfirmed === true)
+
     opportunities[option.id] = {
-      status: opportunityStatuses.includes(raw.status) ? raw.status : 'not-assessed',
-      evidenceNote: typeof raw.evidenceNote === 'string' ? raw.evidenceNote : '',
+      status,
+      // A legacy client note is migrated to the separate client field, never counted as public evidence.
+      evidenceNote: legacyClientConfirmed ? '' : oldEvidenceNote,
       evidenceSource: typeof raw.evidenceSource === 'string' ? raw.evidenceSource : '',
+      clientConfirmed,
+      clientConfirmationNote: status === 'not-fit'
+        ? ''
+        : legacyClientConfirmed
+          ? oldEvidenceNote
+          : typeof raw.clientConfirmationNote === 'string'
+            ? raw.clientConfirmationNote
+            : '',
     }
   }
-  const noRelevantService = input.noRelevantService === true
+
   return {
     identityStatus: checkStatuses.includes(input.identityStatus as CheckStatus) ? input.identityStatus as CheckStatus : 'not-checked',
     contactStatus: checkStatuses.includes(input.contactStatus as CheckStatus) ? input.contactStatus as CheckStatus : 'not-checked',
@@ -86,7 +134,7 @@ export function normalizeQualification(value: unknown): LeadQualification {
     verificationNote: typeof input.verificationNote === 'string' ? input.verificationNote : '',
     verificationDate: typeof input.verificationDate === 'string' ? input.verificationDate : '',
     opportunities,
-    noRelevantService,
+    noRelevantService: input.noRelevantService === true,
     nextAction: typeof input.nextAction === 'string' ? input.nextAction : '',
     nextActionDate: typeof input.nextActionDate === 'string' ? input.nextActionDate : '',
     interestStatus: interestStatuses.includes(input.interestStatus as InterestStatus) ? input.interestStatus as InterestStatus : 'no-response',
@@ -104,61 +152,99 @@ export function isHttpUrl(value: string) {
   }
 }
 
-function qualifiedOpportunityPoints(qualification: LeadQualification) {
-  let signalCount = 0
-  let clientConfirmedCount = 0
-  for (const assessment of Object.values(qualification.opportunities)) {
-    if (assessment.status === 'public-signal' && assessment.evidenceNote.trim() && isHttpUrl(assessment.evidenceSource.trim())) signalCount += 1
-    const clientConfirmedNeed = qualification.interestStatus === 'need-confirmed' || qualification.interestStatus === 'proposal-requested'
-    if (assessment.status === 'client-confirmed' && assessment.evidenceNote.trim() && clientConfirmedNeed && qualification.interestEvidence.trim() && qualification.interestDate) clientConfirmedCount += 1
-  }
-  return Math.min(50, signalCount * 10 + clientConfirmedCount * 20)
-}
-
 function hasExplicitNoFit(qualification: LeadQualification) {
   return qualification.noRelevantService || serviceOptions.every(({ id }) => qualification.opportunities[id].status === 'not-fit')
 }
 
+function hasRecordedInteraction(qualification: LeadQualification) {
+  return qualification.interestStatus !== 'no-response' && Boolean(qualification.interestEvidence.trim()) && Boolean(qualification.interestDate)
+}
+
+function hasClientConfirmedService(qualification: LeadQualification) {
+  const confirmationStage = qualification.interestStatus === 'need-confirmed' || qualification.interestStatus === 'proposal-requested'
+  return confirmationStage && hasRecordedInteraction(qualification) && serviceOptions.some(({ id }) => {
+    const assessment = qualification.opportunities[id]
+    return assessment.status !== 'not-fit' && assessment.clientConfirmed && Boolean(assessment.clientConfirmationNote.trim())
+  })
+}
+
+function countDocumentedPublicSignals(qualification: LeadQualification) {
+  return serviceOptions.filter(({ id }) => {
+    const assessment = qualification.opportunities[id]
+    return assessment.status === 'public-signal' && Boolean(assessment.evidenceNote.trim()) && isHttpUrl(assessment.evidenceSource.trim())
+  }).length
+}
+
+export function hasRelevantService(qualification: LeadQualification) {
+  if (hasExplicitNoFit(qualification)) return false
+  return countDocumentedPublicSignals(qualification) > 0 || hasClientConfirmedService(qualification)
+}
+
+export function getPublicScore(qualification: LeadQualification) {
+  if (hasExplicitNoFit(qualification) || !hasRelevantService(qualification)) return 0
+
+  const servicePoints = countDocumentedPublicSignals(qualification) * scoringWeights.publicSignalPerService
+  const identityPoints = qualification.identityStatus === 'confirmed' ? scoringWeights.identityConfirmed : 0
+  const contactPoints = qualification.contactStatus === 'confirmed' && qualification.verifiedContactValue.trim() ? scoringWeights.contactConfirmed : 0
+  const sourceAndNotePoints = isHttpUrl(qualification.verificationSourceUrl.trim()) && qualification.verificationNote.trim() ? scoringWeights.sourceAndNote : 0
+  const datePoints = qualification.verificationDate ? scoringWeights.validationDate : 0
+  return Math.min(scoringWeights.maxPublicScore, servicePoints + identityPoints + contactPoints + sourceAndNotePoints + datePoints)
+}
+
+export function getClientConfirmationBonus(qualification: LeadQualification) {
+  if (hasExplicitNoFit(qualification) || !hasRelevantService(qualification) || !hasRecordedInteraction(qualification)) return 0
+  if (qualification.interestStatus === 'responded') return 0
+  if (qualification.interestStatus === 'need-confirmed' && hasClientConfirmedService(qualification)) return scoringWeights.confirmedNeed
+  if (qualification.interestStatus === 'proposal-requested' && hasClientConfirmedService(qualification)) return scoringWeights.requestedProposal
+  return 0
+}
+
+function confirmationDetail(qualification: LeadQualification) {
+  if (qualification.interestStatus === 'no-response') return 'Sem bônus até registrar uma resposta do negócio.'
+  if (!hasRecordedInteraction(qualification)) return 'Registre evidência e data da conversa para pontuar.'
+  if (qualification.interestStatus === 'responded') return 'Resposta documentada: atualiza temperatura/taxa de resposta, mas não soma pontos de prioridade.'
+  if (qualification.interestStatus === 'declined') return 'Recusa documentada: sem bônus de score; se a prospecção terminou, mova o lead para “Sem prioridade”.'
+  if (!hasClientConfirmedService(qualification)) return 'Necessidade/proposta exige confirmação por serviço, nota específica, evidência da interação e data.'
+  return qualification.interestStatus === 'need-confirmed'
+    ? `Necessidade confirmada por serviço, com evidência e data: +${scoringWeights.confirmedNeed}.`
+    : `Proposta/orçamento solicitado e documentado para um serviço: +${scoringWeights.requestedProposal}.`
+}
+
 export function getScoreBreakdown(qualification: LeadQualification): ScoreLine[] {
-  const explicitNoFit = hasExplicitNoFit(qualification)
-  const noFitDetail = 'Dados registrados no CRM, mas não pontuados porque nenhum serviço compatível foi marcado.'
-  const servicePoints = explicitNoFit ? 0 : qualifiedOpportunityPoints(qualification)
-  const scoreStarted = !explicitNoFit && servicePoints > 0
-  const pausedDetail = explicitNoFit ? noFitDetail : 'Ainda não pontuado: registre um serviço compatível com evidência para iniciar o score.'
-  const identityPoints = scoreStarted && qualification.identityStatus === 'confirmed' ? 10 : 0
-  const contactPoints = scoreStarted && qualification.contactStatus === 'confirmed' && qualification.verifiedContactValue.trim() ? 15 : 0
-  const sourcePoints = scoreStarted && isHttpUrl(qualification.verificationSourceUrl.trim()) && qualification.verificationNote.trim() ? 10 : 0
-  const verificationDatePoints = scoreStarted && qualification.verificationDate ? 5 : 0
-  const nextActionPoints = scoreStarted && qualification.nextAction.trim() ? 5 : 0
-  const nextActionDatePoints = scoreStarted && qualification.nextActionDate ? 5 : 0
+  const active = hasRelevantService(qualification) && !hasExplicitNoFit(qualification)
+  const publicServicePoints = active ? countDocumentedPublicSignals(qualification) * scoringWeights.publicSignalPerService : 0
+  const identityPoints = active && qualification.identityStatus === 'confirmed' ? scoringWeights.identityConfirmed : 0
+  const contactPoints = active && qualification.contactStatus === 'confirmed' && qualification.verifiedContactValue.trim() ? scoringWeights.contactConfirmed : 0
+  const sourceAndNotePoints = active && isHttpUrl(qualification.verificationSourceUrl.trim()) && qualification.verificationNote.trim() ? scoringWeights.sourceAndNote : 0
+  const datePoints = active && qualification.verificationDate ? scoringWeights.validationDate : 0
+  const confirmationPoints = active ? getClientConfirmationBonus(qualification) : 0
+  const pausedDetail = hasExplicitNoFit(qualification)
+    ? 'Dados permanecem no CRM, mas não pontuam porque nenhum serviço se aplica.'
+    : 'Ainda não há um serviço compatível com evidência suficiente para iniciar o score.'
+
   return [
-    { label: 'Encaixe de serviço com evidência', points: servicePoints, detail: explicitNoFit ? 'Nenhum serviço compatível foi registrado.' : servicePoints === 0 ? 'Marque um sinal público com fonte/nota ou confirme necessidade após interação documentada para iniciar o score.' : 'Sinais públicos documentados valem 10 cada; necessidade confirmada pelo negócio com interação, evidência e data vale 20; teto de 50.' },
-    { label: 'Identidade do negócio conferida', points: identityPoints, detail: scoreStarted ? 'Até 10 pontos.' : pausedDetail },
-    { label: 'Contato público conferido', points: contactPoints, detail: scoreStarted ? 'Até 15 pontos, somente com canal e valor registrados.' : pausedDetail },
-    { label: 'Fonte e nota da conferência', points: sourcePoints, detail: scoreStarted ? 'Até 10 pontos com URL HTTP(S) e observação.' : pausedDetail },
-    { label: 'Data da conferência', points: verificationDatePoints, detail: scoreStarted ? 'Até 5 pontos.' : pausedDetail },
-    { label: 'Próxima ação definida', points: nextActionPoints, detail: scoreStarted ? 'Até 5 pontos.' : pausedDetail },
-    { label: 'Data da próxima ação', points: nextActionDatePoints, detail: scoreStarted ? 'Até 5 pontos.' : pausedDetail },
+    { label: 'Fase pública · sinais de serviço', points: publicServicePoints, detail: active ? `${scoringWeights.publicSignalPerService} por serviço com nota e URL próprias; máximo ${scoringWeights.publicSignalPerService * serviceOptions.length}. A ausência de um problema observável não é uma falha comprovada.` : pausedDetail },
+    { label: 'Fase pública · identidade', points: identityPoints, detail: active ? `${scoringWeights.identityConfirmed} pontos quando a identidade do negócio é conferida.` : pausedDetail },
+    { label: 'Fase pública · canal', points: contactPoints, detail: active ? `${scoringWeights.contactConfirmed} pontos quando o canal público e o valor estão conferidos.` : pausedDetail },
+    { label: 'Fase pública · fonte e nota', points: sourceAndNotePoints, detail: active ? `${scoringWeights.sourceAndNote} pontos com URL HTTP(S) e nota de conferência.` : pausedDetail },
+    { label: 'Fase pública · data', points: datePoints, detail: active ? `${scoringWeights.validationDate} pontos com data de conferência registrada.` : pausedDetail },
+    { label: 'Fase cliente · confirmação', points: confirmationPoints, detail: active ? confirmationDetail(qualification) : pausedDetail },
   ]
 }
 
 export function getProspectingScore(qualification: LeadQualification): number | null {
   if (hasExplicitNoFit(qualification)) return 0
-  const servicePoints = qualifiedOpportunityPoints(qualification)
-  if (servicePoints === 0) return null
-  return Math.min(100, getScoreBreakdown(qualification).reduce((total, line) => total + line.points, 0))
-}
-
-export function hasRelevantService(qualification: LeadQualification) {
-  return !hasExplicitNoFit(qualification) && qualifiedOpportunityPoints(qualification) > 0
+  if (!hasRelevantService(qualification)) return null
+  const total = getPublicScore(qualification) + getClientConfirmationBonus(qualification)
+  return Math.min(scoringWeights.maxTotalScore, total)
 }
 
 export function getScoreLabel(score: number | null) {
   if (score === null) return 'Ainda não avaliado'
   if (score === 0) return 'Sem serviço compatível'
-  if (score < 50) return 'Baixa prioridade · evidência limitada'
-  if (score < 70) return 'Potencial médio · confirme o encaixe'
-  if (score < 85) return 'Prioridade alta de pesquisa'
+  if (score < scoringWeights.mediumPotentialThreshold) return 'Baixa prioridade · evidência limitada'
+  if (score < scoringWeights.highPriorityThreshold) return 'Potencial médio · confirme o encaixe'
+  if (score < scoringWeights.veryHighPriorityThreshold) return 'Prioridade alta de pesquisa'
   return 'Prioridade muito alta de pesquisa'
 }
 
@@ -171,8 +257,7 @@ export function getValidationLabel(qualification: LeadQualification) {
 }
 
 export function canMarkReadyForContact(qualification: LeadQualification) {
-  const score = getProspectingScore(qualification)
-  return score !== null && score >= 50 && hasRelevantService(qualification) &&
+  return getPublicScore(qualification) >= scoringWeights.minimumPublicScoreToContact && hasRelevantService(qualification) &&
     qualification.identityStatus === 'confirmed' && qualification.contactStatus === 'confirmed' &&
     Boolean(qualification.verifiedContactValue.trim()) && isHttpUrl(qualification.verificationSourceUrl.trim()) &&
     Boolean(qualification.verificationNote.trim()) && Boolean(qualification.verificationDate)
@@ -181,7 +266,9 @@ export function canMarkReadyForContact(qualification: LeadQualification) {
 export function getInterestTemperature(qualification: LeadQualification) {
   if (qualification.interestStatus === 'no-response') return { label: 'Frio · sem resposta registrada', className: 'cold' }
   if (!qualification.interestEvidence.trim() || !qualification.interestDate) return { label: 'Interação sem evidência/data', className: 'pending' }
+  if (qualification.interestStatus === 'declined') return { label: 'Frio · recusou ou não há interesse', className: 'cold' }
   if (qualification.interestStatus === 'responded') return { label: 'Morno · respondeu', className: 'warm' }
+  if (!hasClientConfirmedService(qualification)) return { label: 'Interação registrada · associe a um serviço', className: 'pending' }
   if (qualification.interestStatus === 'need-confirmed') return { label: 'Quente · necessidade confirmada', className: 'hot' }
   return { label: 'Quente · pediu proposta', className: 'hot' }
 }
