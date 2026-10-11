@@ -635,6 +635,20 @@ h1, h2, h3, p { margin-top: 0; }
 .kanban-next-action { display: block; margin: 7px 0; color: #66806f; font-size: 8px; line-height: 1.45; overflow-wrap: anywhere; }
 .qualification-section { padding-top: 19px; }
 .qualification-intro { margin: 0 0 12px; color: #818c9c; font-size: 9px; line-height: 1.55; }
+.quick-validation-checklist { margin: 0 0 13px; overflow: hidden; border: 1px solid #e2eaf6; border-radius: 10px; background: #f8faff; }
+.quick-validation-checklist summary { display: flex; align-items: center; gap: 8px; padding: 10px; color: #56719a; cursor: pointer; list-style: none; }
+.quick-validation-checklist summary::-webkit-details-marker { display: none; }
+.quick-validation-checklist summary::after { margin-left: auto; color: #7f91ad; content: 'Abrir +'; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.quick-validation-checklist[open] summary::after { content: 'Fechar −'; }
+.quick-validation-checklist summary > svg { flex: 0 0 auto; }
+.quick-validation-checklist summary > span { display: flex; flex-direction: column; gap: 3px; }
+.quick-validation-checklist summary strong { color: #4a5f80; font-size: 9px; }
+.quick-validation-checklist summary small { color: #8b98ab; font-size: 8px; }
+.quick-validation-body { padding: 0 10px 10px; border-top: 1px solid #e8eef7; }
+.quick-validation-body ol { margin: 9px 0 10px; padding-left: 18px; color: #748198; font-size: 8px; line-height: 1.55; }
+.quick-validation-body li + li { margin-top: 5px; }
+.quick-validation-body a { display: inline-flex; color: #3f74bd; font-size: 8px; font-weight: 800; text-decoration: none; }
+.quick-validation-body a:hover { text-decoration: underline; }
 .validation-badge { display: inline-flex; align-items: center; padding: 5px 7px; border-radius: 7px; font-size: 8px; font-weight: 800; white-space: nowrap; }
 .validation-badge.pending { color: #927442; background: #fff6e4; }
 .validation-badge.verified { color: #4b8d6e; background: #eaf6ef; }

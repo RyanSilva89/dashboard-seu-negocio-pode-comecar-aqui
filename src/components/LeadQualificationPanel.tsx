@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarClock, CircleAlert, ShieldCheck, Target } from 'lucide-react'
+import { BadgeCheck, CalendarClock, CircleAlert, ClipboardCheck, ShieldCheck, Target } from 'lucide-react'
 import {
   canMarkReadyForContact,
   getInterestTemperature,
@@ -47,6 +47,7 @@ const statusLabels: Record<CheckStatus, string> = {
   'not-checked': 'Ainda não conferido',
   confirmed: 'Confere com o negócio',
   mismatch: 'Encontrei divergência',
+  'access-restricted': 'Acesso restrito · exige login',
 }
 
 export default function LeadQualificationPanel({ lead, qualification, onChange, onMarkReady }: Props) {
@@ -54,6 +55,7 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
   const scoreBreakdown = getScoreBreakdown(qualification)
   const validationLabel = getValidationLabel(qualification)
   const ready = canMarkReadyForContact(qualification)
+  const accessRestricted = qualification.identityStatus === 'access-restricted' || qualification.contactStatus === 'access-restricted'
   const temperature = getInterestTemperature(qualification)
   const originalContact = defaultContact(lead)
   const originalSource = defaultSource(lead)
@@ -88,6 +90,19 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
         <span className={`validation-badge ${validationLabel === 'Conferido manualmente' ? 'verified' : validationLabel === 'Divergência encontrada' ? 'mismatch' : 'pending'}`}>{validationLabel}</span>
       </div>
       <p className="qualification-intro">Confira o perfil, registre onde viu cada informação e só então avalie se um serviço seu pode fazer sentido. Tudo fica salvo neste navegador.</p>
+      <details className="quick-validation-checklist">
+        <summary><ClipboardCheck size={15} /><span><strong>Checklist rápido de conferência</strong><small>Identidade, canal, fonte e decisão segura</small></span></summary>
+        <div className="quick-validation-body">
+          <ol>
+            <li>Confirme que o perfil pertence ao negócio e que nome/localidade combinam com outra fonte própria.</li>
+            <li>Confira se telefone ou WhatsApp está publicado no perfil/site oficial; copie o canal exato, sem presumir que pertence à empresa.</li>
+            <li>Registre URL exata, data e o que observou, sem dados sensíveis.</li>
+            <li>Marque necessidade como hipótese observável; “confirmada” só depois de conversa documentada.</li>
+            <li>Se login impedir a leitura, marque “Acesso restrito · exige login” e mantenha a ficha pendente.</li>
+          </ol>
+          <a href="/checklist-verificacao-manual-perfis.md" download>Baixar modelo preenchível em Markdown</a>
+        </div>
+      </details>
 
       <div className={`qualification-score ${score !== null && score >= 50 ? 'score-qualifies' : ''}`}>
         <div className="qualification-score-top">
@@ -163,7 +178,7 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
 
       <div className="ready-gate">
         <button className="button-primary" type="button" disabled={!ready} onClick={onMarkReady}><BadgeCheck size={15} /> Marcar “Pronto para contato”</button>
-        <p>{ready ? 'Dados e encaixe atendem aos critérios mínimos. Revise sua mensagem antes de qualquer abordagem.' : 'Para liberar: pelo menos um serviço com evidência, score ≥ 50, identidade e contato confirmados, fonte válida, nota e data da conferência.'}</p>
+        <p>{ready ? 'Dados e encaixe atendem aos critérios mínimos. Revise sua mensagem antes de qualquer abordagem.' : accessRestricted ? 'O acesso está restrito. Não considere os dados confirmados nem avance para contato até conseguir revisar uma fonte válida.' : 'Para liberar: pelo menos um serviço com evidência, score ≥ 50, identidade e contato confirmados, fonte válida, nota e data da conferência.'}</p>
       </div>
     </section>
   )

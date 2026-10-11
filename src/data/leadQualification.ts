@@ -6,7 +6,7 @@ export const serviceOptions = [
 
 export type ServiceId = typeof serviceOptions[number]['id']
 export type OpportunityStatus = 'not-assessed' | 'public-signal' | 'client-confirmed' | 'not-fit'
-export type CheckStatus = 'not-checked' | 'confirmed' | 'mismatch'
+export type CheckStatus = 'not-checked' | 'confirmed' | 'mismatch' | 'access-restricted'
 export type InterestStatus = 'no-response' | 'responded' | 'need-confirmed' | 'proposal-requested'
 
 export type OpportunityAssessment = {
@@ -57,7 +57,7 @@ export function createDefaultQualification(): LeadQualification {
   }
 }
 
-const checkStatuses: CheckStatus[] = ['not-checked', 'confirmed', 'mismatch']
+const checkStatuses: CheckStatus[] = ['not-checked', 'confirmed', 'mismatch', 'access-restricted']
 const opportunityStatuses: OpportunityStatus[] = ['not-assessed', 'public-signal', 'client-confirmed', 'not-fit']
 const interestStatuses: InterestStatus[] = ['no-response', 'responded', 'need-confirmed', 'proposal-requested']
 
@@ -165,6 +165,7 @@ export function getScoreLabel(score: number | null) {
 export function getValidationLabel(qualification: LeadQualification) {
   if (qualification.identityStatus === 'mismatch' || qualification.contactStatus === 'mismatch') return 'Divergência encontrada'
   if (qualification.identityStatus === 'confirmed' && qualification.contactStatus === 'confirmed' && qualification.verifiedContactValue.trim() && isHttpUrl(qualification.verificationSourceUrl.trim()) && qualification.verificationNote.trim() && qualification.verificationDate) return 'Conferido manualmente'
+  if (qualification.identityStatus === 'access-restricted' || qualification.contactStatus === 'access-restricted') return 'Acesso restrito · exige login'
   if (qualification.identityStatus !== 'not-checked' || qualification.contactStatus !== 'not-checked' || qualification.verificationSourceUrl || qualification.verificationNote || qualification.verificationDate) return 'Validação parcial'
   return 'Não verificado'
 }

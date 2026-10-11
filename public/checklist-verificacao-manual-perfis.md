@@ -1,0 +1,51 @@
+# Checklist rápido para verificação manual de perfis
+
+Use uma cópia por negócio. O objetivo é confirmar fatos públicos antes de preparar uma abordagem — não inferir intenção de compra.
+
+## 1. Identidade e localidade
+
+- [ ] O perfil parece ser do próprio negócio (por exemplo, o site oficial aponta para ele ou o perfil aponta para o site oficial).
+- [ ] Nome, atividade e cidade correspondem a uma segunda fonte pública atribuível ao negócio.
+- [ ] Se há apenas nomes parecidos, anote a divergência e não associe contatos de páginas homônimas.
+
+## 2. Canal de contato
+
+- [ ] O telefone, WhatsApp ou e-mail aparece em uma fonte pública do próprio negócio.
+- [ ] Registrei o canal e o valor exatamente como publicados, sem completar ou adivinhar números.
+- [ ] Quando possível, comparei com outro canal oficial. Perfil com exigência de login não conta como conferido.
+
+## 3. Fonte e registro
+
+- [ ] Salvei a URL exata em que vi cada dado.
+- [ ] Registrei a data da consulta e uma nota objetiva sobre o conteúdo visível.
+- [ ] Marquei cada dado como confirmado, parcial, divergente ou “Acesso restrito · exige login”.
+- [ ] “Acesso restrito” significa que não consegui verificar; não significa que o dado esteja errado.
+
+## 4. Compatibilidade do serviço
+
+- [ ] Identifiquei um sinal específico que poderia justificar um serviço que eu ofereço.
+- [ ] Mantive o sinal como **hipótese** — um perfil, site ou WhatsApp publicado não prova que exista uma necessidade.
+- [ ] Só marquei necessidade como **confirmada pelo negócio** se houve conversa e registrei evidência e data.
+
+## 5. Decisão no CRM
+
+- [ ] Deixei a ficha em revisão se alguma identidade, contato ou fonte continua sem confirmação.
+- [ ] Só avancei para “Pronto para contato” após validar identidade e canal, registrar fonte/nota/data, encontrar um serviço compatível e atingir score mínimo de 50 no CRM.
+- [ ] Não tratei o score como probabilidade de compra nem usei o score, sozinho, para classificar o lead como quente.
+
+### Ficha para copiar e preencher
+
+- **Negócio:**
+- **Cidade / nicho:**
+- **URL do perfil:**
+- **URL do site ou outra fonte própria:**
+- **Data da conferência:**
+- **Canal / contato público:**
+- **O que observei (fato, sem interpretação):**
+- **Fonte exata para cada fato:**
+- **Status:** confirmado / parcial / divergente / acesso restrito
+- **Sinal de serviço possível (hipótese):**
+- **Necessidade confirmada pelo negócio?** não / sim — evidência e data:
+- **Próximo passo:**
+
+> Se a rede exigir login, use o app ou navegador oficial manualmente. Não compartilhe senha/cookies com extensões, não contorne bloqueios e não automatize coleta sem autorização da plataforma. Dados e notas do CRM deste projeto permanecem locais no navegador.
