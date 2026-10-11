@@ -381,7 +381,7 @@ function DashboardPage({ leads: rows, stageCount, siteCount, onNavigate, onOpenL
     <>
       <div className="welcome-banner">
         <div className="welcome-orb"><Target size={25} /></div>
-        <div className="welcome-copy"><div className="welcome-label">SEU FOCO AGORA</div><h2>Centralize leads e organize próximos passos.</h2><p>A base reúne dez clínicas mapeadas em Campinas e três perfis de outras praças enviados para investigação. Vínculos e dados pendentes aparecem sinalizados; valide antes de oferecer um serviço.</p></div>
+        <div className="welcome-copy"><div className="welcome-label">SEU FOCO AGORA</div><h2>Centralize leads e organize próximos passos.</h2><p>A base reúne negócios mapeados em Campinas, São Paulo e Uberaba, além de perfis enviados por você. Fontes, contatos e pontos pendentes aparecem sinalizados em cada ficha; trate toda oferta como hipótese até conversar com o negócio.</p></div>
         <button className="button-primary" onClick={() => onNavigate('leads')}>Explorar leads <ArrowRight size={16} /></button>
         <div className="banner-pattern" aria-hidden="true"><span /><span /><span /></div>
       </div>

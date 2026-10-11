@@ -31,7 +31,7 @@ export type Lead = {
   lastReviewedAt?: string
 }
 
-export const researchedAt = '10/10/2026'
+export const researchedAt = '11/10/2026'
 
 export const leads: Lead[] = [
   {
@@ -660,6 +660,101 @@ export const leads: Lead[] = [
     confidence: 'Moderada para nome, cidade e serviços descritos no resultado indexado; baixa para endereço, telefone e situação atual.',
     sources: [
       { label: 'Instagram — perfil indicado (resultado indexado)', url: 'https://www.instagram.com/clinicanunes.esteticaavancada/', supports: 'Trecho indexado identifica o perfil, descreve harmonização facial/perfiloplastia e informa Uberaba–MG; acesso direto redirecionou para login.' },
+    ],
+    origin: 'pesquisa',
+    lastReviewedAt: '11/10/2026',
+  },
+  {
+    id: 'clinica-aviva-campinas',
+    name: 'Clínica Aviva',
+    specialty: 'Estética facial e corporal avançada; cuidados de beleza e bem-estar',
+    address: 'Rua Orlando Carpino, 50, Jardim Chapadão, Campinas–SP',
+    contacts: [
+      { label: 'Telefone comercial publicado no site oficial', value: '(19) 3213-4436', type: 'direto' },
+    ],
+    website: 'https://clinicaavivaestetica.com.br/',
+    websiteStatus: 'Confirmado',
+    city: 'Campinas, SP',
+    niche: 'Estética avançada',
+    instagram: 'https://www.instagram.com/estetica.aviva/',
+    services: 'O site próprio apresenta estética facial e corporal, bem-estar e massagens, incluindo limpeza de pele, drenagem linfática, radiofrequência facial, microagulhamento e lipocavitação.',
+    scheduling: 'O site convida a agendar por telefone/WhatsApp; não foi confirmado calendário de reservas online.',
+    evidence: [
+      'O site próprio identifica a Aviva como clínica de estética facial e corporal e descreve serviços e tratamentos.',
+      'O site publica o endereço na Rua Orlando Carpino, 50, em Campinas, e o telefone (19) 3213-4436.',
+      'O site oferece contato para agendamento por telefone/WhatsApp e vincula o perfil @estetica.aviva; nenhuma necessidade de compra foi identificada.',
+    ],
+    offer: 'Perguntar se uma página de campanha por procedimento, com caminho claro para solicitar avaliação via WhatsApp, seria útil. É uma hipótese: o site já apresenta tratamentos e não há falha ou demanda confirmada.',
+    priority: 'Média provisória',
+    priorityReason: 'Site próprio, endereço e canal de contato publicados; adequação comercial e interesse em serviços ainda não foram validados.',
+    confidence: 'Alta para nome, cidade, endereço, serviços e telefone publicados no site oficial; nenhuma intenção de compra foi confirmada.',
+    sources: [
+      { label: 'Site oficial — Clínica Aviva', url: 'https://clinicaavivaestetica.com.br/', supports: 'Identidade, tratamentos, endereço, telefone, horários e link para Instagram e localização.' },
+      { label: 'Instagram vinculado pelo site oficial', url: 'https://www.instagram.com/estetica.aviva/', supports: 'Canal social associado pelo próprio site; o conteúdo do perfil não foi usado para inferir serviços ou necessidade.' },
+    ],
+    origin: 'pesquisa',
+    lastReviewedAt: '11/10/2026',
+  },
+  {
+    id: 'leggero-restaurante-sao-paulo',
+    name: 'Leggero Restaurante',
+    specialty: 'Restaurante self-service e buffet por quilo',
+    address: 'Rua dos Pinheiros, 1376, Pinheiros, São Paulo–SP',
+    contacts: [
+      { label: 'Instagram oficial vinculado pelo site', value: 'https://www.instagram.com/leggerorestaurante/', type: 'social' },
+    ],
+    website: 'https://leggerorestaurante.com.br/',
+    websiteStatus: 'Confirmado',
+    city: 'São Paulo, SP',
+    niche: 'Buffet / restaurante por quilo',
+    instagram: 'https://www.instagram.com/leggerorestaurante/',
+    services: 'O site próprio apresenta almoço self-service e restaurante por quilo, com buffet que destaca sushi, churrasco, sobremesas e sorvete.',
+    scheduling: 'O site informa atendimento para almoço, de segunda a sábado, das 11h às 16h; não foi identificado sistema de reserva ou pedido online.',
+    evidence: [
+      'O site próprio descreve o Leggero como restaurante self-service e por quilo em Pinheiros, São Paulo.',
+      'O site publica o endereço Rua dos Pinheiros, 1376, e horário de almoço de segunda a sábado.',
+      'O próprio site vincula o perfil @leggerorestaurante; a abertura direta do Instagram redirecionou para login, portanto a bio atual não foi usada. O e-mail exibido no site é para currículos e não foi tratado como contato comercial.',
+    ],
+    offer: 'Perguntar se um cardápio digital com informações do buffet e do horário de almoço seria útil para apresentar a experiência. Não há problema digital nem necessidade de compra confirmados.',
+    priority: 'Média-baixa provisória',
+    priorityReason: 'Identidade, site, endereço e nicho aparecem no site próprio; o Instagram vinculado não pôde ser conferido sem login e não há telefone comercial publicado no site consultado.',
+    confidence: 'Alta para identidade, cidade, endereço, modalidade e horário informados pelo site oficial; limitada para o conteúdo atual do Instagram e para um canal telefônico.',
+    sources: [
+      { label: 'Site oficial — Leggero Restaurante', url: 'https://leggerorestaurante.com.br/', supports: 'Nome, self-service, buffet por quilo, endereço, horário de almoço e link do Instagram.' },
+      { label: 'Instagram vinculado pelo site oficial', url: 'https://www.instagram.com/leggerorestaurante/', supports: 'Canal social associado pelo site; acesso direto redirecionou para login, então não foram usados dados da bio ou publicações.' },
+    ],
+    origin: 'pesquisa',
+    lastReviewedAt: '11/10/2026',
+  },
+  {
+    id: 'fisio-prime-instituto-uberaba',
+    name: 'Fisio Prime Instituto',
+    specialty: 'Fisioterapia ortopédica, desportiva e dermatofuncional; Pilates e saúde da mulher',
+    address: 'Rua Doutor José Ferreira, 230, Jardim Alexandre Campos, Uberaba–MG, 38010-340',
+    contacts: [
+      { label: 'Telefone comercial publicado no site oficial', value: '(34) 3325-3525', type: 'direto' },
+      { label: 'WhatsApp vinculado na página oficial de contato', value: '+55 34 99654-7304', type: 'direto' },
+    ],
+    website: 'https://fisioprimeinstituto.com.br/',
+    websiteStatus: 'Confirmado',
+    city: 'Uberaba, MG',
+    niche: 'Fisioterapia',
+    instagram: 'https://www.instagram.com/fisioprimeinstituto/',
+    services: 'O site próprio descreve fisioterapia ortopédica e desportiva, Pilates, fisioterapia dermatofuncional, saúde da mulher e reabilitação musculoesquelética.',
+    scheduling: 'O site tem um link “Marque seu atendimento” e formulário de contato; a página inicial oferece faixas horárias, mas não foi confirmado agendamento instantâneo nem integração com calendário.',
+    evidence: [
+      'A página inicial identifica a Fisio Prime Instituto em Uberaba e descreve especialidades e tratamentos.',
+      'A página oficial “Fale Conosco” publica endereço, telefone, e-mail e link de WhatsApp; o site também liga para a página de marcação de atendimento.',
+      'As informações registram o que o próprio site publica; situação operacional atual e eventual necessidade de serviço digital não foram confirmadas com a clínica.',
+    ],
+    offer: 'Perguntar se conectar a solicitação de horário do site a uma rotina de acompanhamento/CRM seria útil. É uma hipótese; o site já oferece formulário e não há necessidade de automação confirmada.',
+    priority: 'Média provisória',
+    priorityReason: 'Site próprio, especialidades, endereço e canais comerciais estão publicados; interesse em serviço e operação atual precisam de validação em conversa.',
+    confidence: 'Alta para os dados publicados nas páginas próprias; moderada para o status operacional atual, que não foi confirmado diretamente com a clínica.',
+    sources: [
+      { label: 'Site oficial — página inicial', url: 'https://fisioprimeinstituto.com.br/', supports: 'Identidade, localização em Uberaba, áreas de fisioterapia, serviços e indicação para marcar atendimento.' },
+      { label: 'Site oficial — Fale Conosco', url: 'https://fisioprimeinstituto.com.br/fale-conosco/', supports: 'Endereço, telefones, link de WhatsApp, formulário e link para a página de marcação.' },
+      { label: 'Site oficial — Marque seu atendimento', url: 'https://fisioprimeinstituto.com.br/marque-seu-atendimento/', supports: 'Página de solicitação de atendimento vinculada pela página oficial de contato.' },
     ],
     origin: 'pesquisa',
     lastReviewedAt: '11/10/2026',
