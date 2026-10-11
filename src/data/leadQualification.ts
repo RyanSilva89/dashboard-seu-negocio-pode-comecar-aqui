@@ -38,10 +38,11 @@ export type ScoreLine = { label: string; points: number; detail: string }
 
 export const scoringWeights = {
   publicSignalPerService: 20,
-  identityConfirmed: 8,
-  contactConfirmed: 8,
-  sourceAndNote: 2,
-  validationDate: 2,
+  maxPublicSignalPoints: 50,
+  identityConfirmed: 10,
+  contactConfirmed: 10,
+  sourceAndNote: 5,
+  validationDate: 5,
   confirmedNeed: 12,
   requestedProposal: 20,
   minimumPublicScoreToContact: 50,
@@ -175,6 +176,10 @@ function countDocumentedPublicSignals(qualification: LeadQualification) {
   }).length
 }
 
+function getDocumentedPublicSignalPoints(qualification: LeadQualification) {
+  return Math.min(scoringWeights.maxPublicSignalPoints, countDocumentedPublicSignals(qualification) * scoringWeights.publicSignalPerService)
+}
+
 export function hasRelevantService(qualification: LeadQualification) {
   if (hasExplicitNoFit(qualification)) return false
   return countDocumentedPublicSignals(qualification) > 0 || hasClientConfirmedService(qualification)
@@ -183,7 +188,7 @@ export function hasRelevantService(qualification: LeadQualification) {
 export function getPublicScore(qualification: LeadQualification) {
   if (hasExplicitNoFit(qualification) || !hasRelevantService(qualification)) return 0
 
-  const servicePoints = countDocumentedPublicSignals(qualification) * scoringWeights.publicSignalPerService
+  const servicePoints = getDocumentedPublicSignalPoints(qualification)
   const identityPoints = qualification.identityStatus === 'confirmed' ? scoringWeights.identityConfirmed : 0
   const contactPoints = qualification.contactStatus === 'confirmed' && qualification.verifiedContactValue.trim() ? scoringWeights.contactConfirmed : 0
   const sourceAndNotePoints = isHttpUrl(qualification.verificationSourceUrl.trim()) && qualification.verificationNote.trim() ? scoringWeights.sourceAndNote : 0
@@ -212,7 +217,7 @@ function confirmationDetail(qualification: LeadQualification) {
 
 export function getScoreBreakdown(qualification: LeadQualification): ScoreLine[] {
   const active = hasRelevantService(qualification) && !hasExplicitNoFit(qualification)
-  const publicServicePoints = active ? countDocumentedPublicSignals(qualification) * scoringWeights.publicSignalPerService : 0
+  const publicServicePoints = active ? getDocumentedPublicSignalPoints(qualification) : 0
   const identityPoints = active && qualification.identityStatus === 'confirmed' ? scoringWeights.identityConfirmed : 0
   const contactPoints = active && qualification.contactStatus === 'confirmed' && qualification.verifiedContactValue.trim() ? scoringWeights.contactConfirmed : 0
   const sourceAndNotePoints = active && isHttpUrl(qualification.verificationSourceUrl.trim()) && qualification.verificationNote.trim() ? scoringWeights.sourceAndNote : 0
@@ -223,7 +228,7 @@ export function getScoreBreakdown(qualification: LeadQualification): ScoreLine[]
     : 'Ainda não há um serviço compatível com evidência suficiente para iniciar o score.'
 
   return [
-    { label: 'Fase pública · sinais de serviço', points: publicServicePoints, detail: active ? `${scoringWeights.publicSignalPerService} por serviço com nota e URL próprias; máximo ${scoringWeights.publicSignalPerService * serviceOptions.length}. A ausência de um problema observável não é uma falha comprovada.` : pausedDetail },
+    { label: 'Fase pública · sinais de serviço', points: publicServicePoints, detail: active ? `${scoringWeights.publicSignalPerService} por serviço com nota e URL próprias, limitados a ${scoringWeights.maxPublicSignalPoints} pontos entre as três ofertas. A ausência de um problema observável não é uma falha comprovada.` : pausedDetail },
     { label: 'Fase pública · identidade', points: identityPoints, detail: active ? `${scoringWeights.identityConfirmed} pontos quando a identidade do negócio é conferida.` : pausedDetail },
     { label: 'Fase pública · canal', points: contactPoints, detail: active ? `${scoringWeights.contactConfirmed} pontos quando o canal público e o valor estão conferidos.` : pausedDetail },
     { label: 'Fase pública · fonte e nota', points: sourceAndNotePoints, detail: active ? `${scoringWeights.sourceAndNote} pontos com URL HTTP(S) e nota de conferência.` : pausedDetail },

@@ -48,7 +48,7 @@ function defaultSource(lead: Lead) {
 
 const statusLabels: Record<CheckStatus, string> = {
   'not-checked': 'Ainda não conferido',
-  confirmed: 'Confere com o negócio',
+  confirmed: 'Conferido em fonte pública',
   mismatch: 'Encontrei divergência',
   'access-restricted': 'Acesso restrito · exige login',
 }
@@ -107,7 +107,7 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
         <h3>Validar dados e potencial</h3>
         <span className={`validation-badge ${validationLabel === 'Conferido manualmente' ? 'verified' : validationLabel === 'Divergência encontrada' ? 'mismatch' : 'pending'}`}>{validationLabel}</span>
       </div>
-      <p className="qualification-intro">Confira o perfil, registre onde viu cada informação e só então avalie se um serviço seu pode fazer sentido. Tudo fica salvo neste navegador.</p>
+      <p className="qualification-intro">A fase pública pode ser concluída sem falar com o negócio: confira identidade e contato em fonte pública oficial, registre URL, nota e data. Se não puder consultar a fonte ou só o responsável puder confirmar, deixe pendente. Tudo fica salvo neste navegador.</p>
       <details className="quick-validation-checklist">
         <summary><ClipboardCheck size={15} /><span><strong>Checklist rápido de conferência</strong><small>Identidade, canal, fonte e decisão segura</small></span></summary>
         <div className="quick-validation-body">
@@ -122,7 +122,7 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
         </div>
       </details>
 
-      <div className={`qualification-score ${score !== null && score >= scoringWeights.mediumPotentialThreshold ? 'score-qualifies' : ''}`}>
+      <div className={`qualification-score ${ready ? 'score-qualifies' : ''}`}>
         <div className="qualification-score-top">
           <div><span className="qualification-kicker"><Target size={13} /> PRIORIDADE DE PROSPECÇÃO</span><strong>{score === null ? '—' : score}<small>{score === null ? '' : ' / 100'}</small></strong><span className="qualification-score-label">{getScoreLabel(score)}</span></div>
           <div className="qualification-score-mark"><ShieldCheck size={20} /></div>
@@ -133,11 +133,11 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
           <span>Fase cliente <strong>{score === null ? '—' : `+${confirmationBonus}/${scoringWeights.maxClientBonus}`}</strong></span>
         </div>
         <ul className="score-breakdown">{scoreBreakdown.map((line) => <li key={line.label}><span title={line.detail}>{line.label}</span><strong>{line.points ? `+${line.points}` : '0'}</strong></li>)}</ul>
-        <p className="score-explanation">Até {scoringWeights.maxPublicScore} pontos vêm da análise pública: {scoringWeights.publicSignalPerService} por serviço com fonte e nota, além da conferência de identidade, contato e data. Resposta simples atualiza temperatura e taxa de resposta, mas não soma pontos. Necessidade confirmada acrescenta {scoringWeights.confirmedNeed}; proposta solicitada acrescenta {scoringWeights.requestedProposal}, até {scoringWeights.maxClientBonus}, com evidência e data. A confirmação não substitui nem sobrescreve a evidência pública. Para o primeiro contato, exige-se score público ≥ {scoringWeights.minimumPublicScoreToContact}; bônus pós-conversa não liberam abordagem retroativamente. Score não é probabilidade de compra.</p>
+        <p className="score-explanation">Até {scoringWeights.maxPublicScore} pontos vêm da análise pública: {scoringWeights.publicSignalPerService} por serviço com fonte e nota, limitados a {scoringWeights.maxPublicSignalPoints}, além da conferência de identidade, contato, fonte e data. Exemplo sem conversar: 1 sinal público (+{scoringWeights.publicSignalPerService}) + identidade (+{scoringWeights.identityConfirmed}) + contato publicado (+{scoringWeights.contactConfirmed}) + fonte/nota (+{scoringWeights.sourceAndNote}) + data (+{scoringWeights.validationDate}) = {scoringWeights.minimumPublicScoreToContact}. Resposta simples atualiza temperatura e taxa de resposta, mas não soma pontos. Necessidade confirmada acrescenta {scoringWeights.confirmedNeed}; proposta solicitada acrescenta {scoringWeights.requestedProposal}, até {scoringWeights.maxClientBonus}, com evidência e data. A confirmação não substitui nem sobrescreve a evidência pública. Para o primeiro contato, exige-se score público ≥ {scoringWeights.minimumPublicScoreToContact}; bônus pós-conversa não liberam abordagem retroativamente. Score não é probabilidade de compra.</p>
       </div>
 
-      <div className="validation-subheading"><strong>1. Conferir identidade e contato</strong><span>Use um canal público do próprio negócio.</span></div>
-      <label className="field-label">O perfil corresponde a este negócio?
+      <div className="validation-subheading"><strong>1. Conferir identidade e contato</strong><span>Sem mensagem ou ligação: use o perfil/site oficial.</span></div>
+      <label className="field-label">Nome, perfil e localidade correspondem a este negócio?
         <select value={qualification.identityStatus} onChange={(event) => updateCheck('identityStatus', event.target.value as CheckStatus)}>
           {(Object.entries(statusLabels) as [CheckStatus, string][]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
@@ -147,6 +147,7 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
           {(Object.entries(statusLabels) as [CheckStatus, string][]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
+      <small className="field-footnote">“Conferido” aqui significa que o canal está publicado em perfil/site oficial — não que você já falou com o responsável.</small>
       <div className="qualification-input-row">
         <label className="field-label">Canal<select value={qualification.verifiedContactType} onChange={(event) => onChange({ verifiedContactType: event.target.value })}><option>WhatsApp</option><option>Telefone</option><option>E-mail</option><option>Instagram</option></select></label>
         <label className="field-label">Contato conferido<input value={qualification.verifiedContactValue} onChange={(event) => onChange({ verifiedContactValue: event.target.value })} placeholder={originalContact || 'Digite o contato público'} /></label>
