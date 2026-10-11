@@ -155,6 +155,8 @@ h1, h2, h3, p { margin-top: 0; }
 .step-row small { color: #969eac; font-size: 9px; line-height: 1.4; }
 .next-link { border-top: 1px solid #eff1f4; width: 100%; justify-content: flex-start; padding-top: 12px; }
 .data-note, .crm-privacy { display: flex; align-items: flex-start; gap: 9px; margin-top: 15px; padding: 11px 13px; border: 1px solid #e9edf2; border-radius: 11px; color: #828c9c; background: #fbfcfe; font-size: 9px; line-height: 1.5; }
+.data-note.profile-extraction-note { margin-bottom: 14px; border-color: #dce5fa; color: #596477; background: #f6f8fe; font-size: 10px; }
+.data-note.profile-extraction-note svg { color: #637dc2; }
 .data-note svg, .crm-privacy svg { flex: 0 0 auto; margin-top: 1px; color: #60a58a; }
 .data-note strong { color: #596477; }
 .app-footer { display: flex; justify-content: space-between; gap: 10px; padding: 13px 36px 16px; border-top: 1px solid #e8ebf1; color: #9ca3b0; font-size: 9px; }
@@ -362,6 +364,7 @@ h1, h2, h3, p { margin-top: 0; }
   .signal-card > span { min-height: 30px; }
   .step-row strong, .step-row small { font-size: 9px; }
   .data-note { font-size: 8px; }
+  .data-note.profile-extraction-note { font-size: 9px; }
   .app-footer { flex-direction: column; padding: 12px 14px 15px; font-size: 8px; }
   .table-toolbar { align-items: stretch; flex-direction: column; gap: 12px; padding: 15px 13px 13px; }
   .search-box { width: 100%; min-height: 38px; }
