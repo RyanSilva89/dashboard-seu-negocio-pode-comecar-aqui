@@ -10,6 +10,8 @@ Painel pessoal de prospecção digital em português do Brasil, feito para centr
 
 Leads importados, CRM, cidades/nichos-alvo e configurações do mascote são armazenados em `localStorage` neste navegador/dispositivo; não há sincronização com nuvem ou GitHub. Limpar os dados do navegador pode apagá-los.
 
+Na aba **Leads**, use **Cadastrar lead** para adicionar manualmente negócios encontrados em redes sociais, anúncios ou indicações. Nome, cidade e nicho são necessários; Instagram, telefone, site e observações são opcionais. O cadastro fica apenas neste navegador, aparece na base e nos filtros de cidade/nicho, e é marcado como não verificado. Confira os dados antes de abordar; observações não confirmam a necessidade do cliente.
+
 Planilhas locais podem ficar em `private-imports/`, pasta ignorada pelo Git para evitar que os arquivos sejam incluídos em commits. Essa proteção não criptografa os dados nem impede acesso por outros usuários deste computador; para dados sensíveis, prefira uma pasta protegida pelo sistema operacional.
 
 O importador aceita XLSX, CSV e TSV, faz a leitura e a prévia paginada de todas as linhas no navegador, sugere o mapeamento de colunas e identifica nomes, cidades ou nichos ausentes e possíveis duplicatas. O arquivo original não é enviado nem armazenado pelo app; após a confirmação, apenas os campos selecionados são salvos como fichas estruturadas. Dados de planilha são rotulados como não verificados.

@@ -25,6 +25,7 @@ import {
   MessageSquareText,
   MoreHorizontal,
   Moon,
+  Plus,
   Search,
   ShieldCheck,
   Sparkles,
@@ -43,6 +44,7 @@ import SpreadsheetImporter from './components/SpreadsheetImporter'
 import AutomationLearning from './components/AutomationLearning'
 import LeadQualificationPanel from './components/LeadQualificationPanel'
 import QuoteBuilder from './components/QuoteBuilder'
+import ManualLeadForm from './components/ManualLeadForm'
 import { createDefaultQualification, getProspectingScore, getScoreLabel, getValidationLabel, normalizeQualification, scoringWeights, type LeadQualification } from './data/leadQualification'
 
 type IconType = ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
@@ -130,7 +132,7 @@ function readImportedLeads(): Lead[] {
     return parsed.filter((value): value is Lead => {
       if (!value || typeof value !== 'object') return false
       const lead = value as Partial<Lead>
-      return typeof lead.id === 'string' && typeof lead.name === 'string' && typeof lead.address === 'string' && lead.origin === 'planilha' && Array.isArray(lead.contacts) && Array.isArray(lead.sources)
+      return typeof lead.id === 'string' && typeof lead.name === 'string' && typeof lead.address === 'string' && (lead.origin === 'planilha' || lead.origin === 'manual') && Array.isArray(lead.contacts) && Array.isArray(lead.sources)
     })
   } catch {
     return []
@@ -145,7 +147,7 @@ function statusClass(priority: Priority) {
 
 function siteStatusClass(status: Lead['websiteStatus']) {
   if (status === 'Confirmado') return 'site-confirmed'
-  if (status === 'Informado na planilha · não verificado' || status === 'Não informado na planilha') return 'site-unverified'
+  if (status === 'Informado na planilha · não verificado' || status === 'URL informada · não verificada' || status === 'Não informado na planilha') return 'site-unverified'
   return 'site-missing'
 }
 
@@ -189,6 +191,7 @@ function App() {
   const [offerFilter, setOfferFilter] = useState('Todas as ofertas')
   const [reviewFilter, setReviewFilter] = useState('Todas as fichas')
   const [sourceFilter, setSourceFilter] = useState('Todas as fontes')
+  const [showManualLeadForm, setShowManualLeadForm] = useState(false)
   const [toast, setToast] = useState('')
 
   useEffect(() => {
@@ -227,7 +230,7 @@ function App() {
     const term = normalizeTarget(search)
     return allLeads.filter((lead) => {
       const matchesText = !term || normalizeTarget([lead.name, lead.specialty, lead.address, lead.services, ...lead.contacts.map((contact) => contact.value)].join(' ')).includes(term)
-      const matchesSite = siteFilter === 'Todos os sites' || (siteFilter === 'Site confirmado' && lead.websiteStatus === 'Confirmado') || (siteFilter === 'URL informada · não verificada' && lead.websiteStatus === 'Informado na planilha · não verificado') || (siteFilter === 'Site não localizado' && lead.websiteStatus === 'Não localizado nas fontes consultadas') || (siteFilter === 'Sem URL na planilha' && lead.websiteStatus === 'Não informado na planilha')
+      const matchesSite = siteFilter === 'Todos os sites' || (siteFilter === 'Site confirmado' && lead.websiteStatus === 'Confirmado') || (siteFilter === 'URL informada · não verificada' && (lead.websiteStatus === 'Informado na planilha · não verificado' || lead.websiteStatus === 'URL informada · não verificada')) || (siteFilter === 'Site não localizado' && lead.websiteStatus === 'Não localizado nas fontes consultadas') || (siteFilter === 'Sem URL na planilha' && lead.websiteStatus === 'Não informado na planilha')
       const matchesCity = cityFilter === 'Todas as cidades' || leadMatchesCity(lead, cityFilter)
       const matchesNiche = nicheFilter === 'Todos os nichos' || leadMatchesNiche(lead, nicheFilter)
       const matchesPriority = priorityFilter === 'Todas as prioridades' || lead.priority === priorityFilter
@@ -292,8 +295,47 @@ function App() {
     return true
   }
 
+  function handleManualLeadAdd(lead: Lead) {
+    const duplicate = allLeads.find((existing) => {
+      const sameInstagram = lead.instagram && existing.instagram && normalizeTarget(lead.instagram) === normalizeTarget(existing.instagram)
+      const sameNameAndCity = normalizeTarget(existing.name) === normalizeTarget(lead.name)
+        && normalizeTarget(getLeadCity(existing)) === normalizeTarget(lead.city ?? '')
+      return sameInstagram || sameNameAndCity
+    })
+    if (duplicate) {
+      setToast(`Este lead já está cadastrado como “${duplicate.name}”.`)
+      return false
+    }
+
+    const combined = [...importedLeads, lead]
+    try {
+      localStorage.setItem(importedLeadsStorageKey, JSON.stringify(combined))
+    } catch {
+      setToast('Não foi possível salvar o lead neste navegador. Libere espaço e tente novamente.')
+      return false
+    }
+    setImportedLeads(combined)
+    setState((current) => ({ ...current, [lead.id]: createDefaultLeadState() }))
+    setCityTargets((current) => uniqueTargets([...current, ...(lead.city ? [lead.city] : [])]))
+    setNicheTargets((current) => uniqueTargets([...current, ...(lead.niche ? [lead.niche] : [])]))
+    setSearch(lead.name)
+    setSiteFilter('Todos os sites')
+    setCityFilter('Todas as cidades')
+    setNicheFilter('Todos os nichos')
+    setPriorityFilter('Todas as prioridades')
+    setOfferFilter('Todas as ofertas')
+    setReviewFilter('Todas as fichas')
+    setSourceFilter('Todas as fontes')
+    setShowManualLeadForm(false)
+    openPage('leads')
+    openLead(lead)
+    setToast('Lead cadastrado e salvo neste navegador; confira os dados antes de abordar.')
+    return true
+  }
+
   function openPage(nextPage: PageKey) {
     setPage(nextPage)
+    setShowManualLeadForm(false)
     mainAreaRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
     setDrawerOpen(false)
     setSelectedLead(null)
@@ -366,11 +408,11 @@ function App() {
               <h1>{pageInfo.title}</h1>
               <p>{pageInfo.subtitle}</p>
             </div>
-            {page === 'leads' && <div className="page-heading-actions"><button className="button-primary" onClick={() => openPage('import')}><FileSpreadsheet size={15} /> Importar planilha</button><button className="filter-pill" onClick={() => { setSearch(''); setSiteFilter('Todos os sites'); setCityFilter('Todas as cidades'); setNicheFilter('Todos os nichos'); setPriorityFilter('Todas as prioridades'); setOfferFilter('Todas as ofertas'); setReviewFilter('Todas as fichas'); setSourceFilter('Todas as fontes') }}><Filter size={15} /> Limpar filtros</button></div>}
+            {page === 'leads' && <div className="page-heading-actions"><button className="button-primary" onClick={() => setShowManualLeadForm((current) => !current)}>{showManualLeadForm ? <X size={15} /> : <Plus size={15} />}{showManualLeadForm ? 'Fechar cadastro' : 'Cadastrar lead'}</button><button className="button-outline" onClick={() => openPage('import')}><FileSpreadsheet size={15} /> Importar planilha</button><button className="filter-pill" onClick={() => { setSearch(''); setSiteFilter('Todos os sites'); setCityFilter('Todas as cidades'); setNicheFilter('Todos os nichos'); setPriorityFilter('Todas as prioridades'); setOfferFilter('Todas as ofertas'); setReviewFilter('Todas as fichas'); setSourceFilter('Todas as fontes') }}><Filter size={15} /> Limpar filtros</button></div>}
           </div>
 
           {page === 'dashboard' && <DashboardPage leads={allLeads} stageCount={stageCount} siteCount={siteCount} onNavigate={openPage} onOpenLead={openLead} state={state} />}
-          {page === 'leads' && <LeadsPage leads={visibleLeads} totalCount={allLeads.length} cityOptions={cityOptions} nicheOptions={nicheOptions} search={search} setSearch={setSearch} siteFilter={siteFilter} setSiteFilter={setSiteFilter} cityFilter={cityFilter} setCityFilter={setCityFilter} nicheFilter={nicheFilter} setNicheFilter={setNicheFilter} priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter} offerFilter={offerFilter} setOfferFilter={setOfferFilter} reviewFilter={reviewFilter} setReviewFilter={setReviewFilter} sourceFilter={sourceFilter} setSourceFilter={setSourceFilter} state={state} updateLead={updateLead} selectedLeadId={selectedLead?.id} onOpenLead={openLead} />}
+          {page === 'leads' && <LeadsPage leads={visibleLeads} totalCount={allLeads.length} cityOptions={cityOptions} nicheOptions={nicheOptions} search={search} setSearch={setSearch} siteFilter={siteFilter} setSiteFilter={setSiteFilter} cityFilter={cityFilter} setCityFilter={setCityFilter} nicheFilter={nicheFilter} setNicheFilter={setNicheFilter} priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter} offerFilter={offerFilter} setOfferFilter={setOfferFilter} reviewFilter={reviewFilter} setReviewFilter={setReviewFilter} sourceFilter={sourceFilter} setSourceFilter={setSourceFilter} state={state} updateLead={updateLead} selectedLeadId={selectedLead?.id} onOpenLead={openLead} showManualLeadForm={showManualLeadForm} onManualLeadCancel={() => setShowManualLeadForm(false)} onManualLeadAdd={handleManualLeadAdd} />}
           {page === 'crm' && <CRMPage leads={allLeads} state={state} updateLead={updateLead} selectedLeadId={selectedLead?.id} onOpenLead={openLead} />}
           {page === 'ranking' && <RankingPage leads={allLeads} state={state} onOpenLead={openLead} />}
           {page === 'markets' && <MarketsManager cities={cityTargets} niches={nicheTargets} leads={allLeads} onAddCity={(value) => { if (cityTargets.some((item) => normalizeTarget(item) === normalizeTarget(value))) return false; setCityTargets((current) => uniqueTargets([...current, value])); return true }} onAddNiche={(value) => { if (nicheTargets.some((item) => normalizeTarget(item) === normalizeTarget(value))) return false; setNicheTargets((current) => uniqueTargets([...current, value])); return true }} onRemoveCity={(value) => setCityTargets((current) => current.filter((item) => normalizeTarget(item) !== normalizeTarget(value)))} onRemoveNiche={(value) => setNicheTargets((current) => current.filter((item) => normalizeTarget(item) !== normalizeTarget(value)))} onSelectCity={(value) => { setCityFilter(value); setPage('leads') }} onSelectNiche={(value) => { setNicheFilter(value); setPage('leads') }} />}
@@ -442,12 +484,14 @@ function MetricCard({ label, value, hint, icon: Icon, tone }: { label: string; v
   return <div className="metric-card"><div className={`metric-icon ${tone}`}><Icon size={19} /></div><div className="metric-label">{label}</div><div className="metric-value">{value}</div><div className="metric-hint">{hint}</div><div className={`metric-decoration ${tone}`} /></div>
 }
 
-function LeadsPage({ leads: rows, totalCount, cityOptions, nicheOptions, search, setSearch, siteFilter, setSiteFilter, cityFilter, setCityFilter, nicheFilter, setNicheFilter, priorityFilter, setPriorityFilter, offerFilter, setOfferFilter, reviewFilter, setReviewFilter, sourceFilter, setSourceFilter, state, updateLead, selectedLeadId, onOpenLead }: { leads: Lead[]; totalCount: number; cityOptions: string[]; nicheOptions: string[]; search: string; setSearch: (value: string) => void; siteFilter: string; setSiteFilter: (value: string) => void; cityFilter: string; setCityFilter: (value: string) => void; nicheFilter: string; setNicheFilter: (value: string) => void; priorityFilter: string; setPriorityFilter: (value: string) => void; offerFilter: string; setOfferFilter: (value: string) => void; reviewFilter: string; setReviewFilter: (value: string) => void; sourceFilter: string; setSourceFilter: (value: string) => void; state: LocalState; updateLead: (id: string, updates: Partial<LeadState>) => void; selectedLeadId?: string; onOpenLead: (lead: Lead) => void }) {
+function LeadsPage({ leads: rows, totalCount, cityOptions, nicheOptions, search, setSearch, siteFilter, setSiteFilter, cityFilter, setCityFilter, nicheFilter, setNicheFilter, priorityFilter, setPriorityFilter, offerFilter, setOfferFilter, reviewFilter, setReviewFilter, sourceFilter, setSourceFilter, state, updateLead, selectedLeadId, onOpenLead, showManualLeadForm, onManualLeadCancel, onManualLeadAdd }: { leads: Lead[]; totalCount: number; cityOptions: string[]; nicheOptions: string[]; search: string; setSearch: (value: string) => void; siteFilter: string; setSiteFilter: (value: string) => void; cityFilter: string; setCityFilter: (value: string) => void; nicheFilter: string; setNicheFilter: (value: string) => void; priorityFilter: string; setPriorityFilter: (value: string) => void; offerFilter: string; setOfferFilter: (value: string) => void; reviewFilter: string; setReviewFilter: (value: string) => void; sourceFilter: string; setSourceFilter: (value: string) => void; state: LocalState; updateLead: (id: string, updates: Partial<LeadState>) => void; selectedLeadId?: string; onOpenLead: (lead: Lead) => void; showManualLeadForm: boolean; onManualLeadCancel: () => void; onManualLeadAdd: (lead: Lead) => boolean }) {
   const selectedTargets = [nicheFilter !== 'Todos os nichos' ? nicheFilter : '', cityFilter !== 'Todas as cidades' ? `em ${cityFilter}` : ''].filter(Boolean)
   const searchQuery = selectedTargets.length ? selectedTargets.join(' ') : ''
   const mapSearchUrl = searchQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}` : ''
 
-  return <section className="panel leads-panel">
+  return <>
+    {showManualLeadForm && <ManualLeadForm onAdd={onManualLeadAdd} onCancel={onManualLeadCancel} />}
+    <section className="panel leads-panel">
     <div className="table-toolbar"><div className="toolbar-title"><div><h3>Base de leads <span className="count-bubble">{rows.length}</span></h3><p>Pesquisados e importados; confira a origem e o nível de verificação por ficha.</p></div></div><div className="search-box"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar negócio, serviço ou cidade" aria-label="Buscar leads" />{search && <button aria-label="Limpar busca" onClick={() => setSearch('')}><X size={15} /></button>}</div></div>
     <div className="filter-bar"><label className="filter-select"><span>Cidade</span><select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}><option>Todas as cidades</option>{cityOptions.map((city) => <option key={city}>{city}</option>)}</select><ChevronDown size={14} /></label><label className="filter-select"><span>Nicho</span><select value={nicheFilter} onChange={(event) => setNicheFilter(event.target.value)}><option>Todos os nichos</option>{nicheOptions.map((niche) => <option key={niche}>{niche}</option>)}</select><ChevronDown size={14} /></label><label className="filter-select"><span>Site</span><select value={siteFilter} onChange={(event) => setSiteFilter(event.target.value)}><option>Todos os sites</option><option>Site confirmado</option><option>URL informada · não verificada</option><option>Site não localizado</option><option>Sem URL na planilha</option></select><ChevronDown size={14} /></label><label className="filter-select"><span>Prioridade provisória</span><select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}><option>Todas as prioridades</option><option>Alta provisória</option><option>Média-alta provisória</option><option>Média provisória</option><option>Média-baixa provisória</option><option>Baixa provisória</option></select><ChevronDown size={14} /></label><label className="filter-select"><span>Oferta</span><select value={offerFilter} onChange={(event) => setOfferFilter(event.target.value)}><option>Todas as ofertas</option><option>Site / landing page</option><option>Automação / agendamento</option><option>Instagram / visual</option><option>Validação inicial</option></select><ChevronDown size={14} /></label><label className="filter-select"><span>Verificação</span><select value={reviewFilter} onChange={(event) => setReviewFilter(event.target.value)}><option>Todas as fichas</option><option>Validação pendente</option><option>Conferidos manualmente</option></select><ChevronDown size={14} /></label><label className="filter-select"><span>Fontes</span><select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option>Todas as fontes</option><option>Com fontes</option><option>Sem fontes</option></select><ChevronDown size={14} /></label></div>
     <div className="lead-filter-summary" aria-live="polite">
@@ -458,7 +502,8 @@ function LeadsPage({ leads: rows, totalCount, cityOptions, nicheOptions, search,
     <div className="table-scroll"><table className="lead-table"><thead><tr><th>Negócio</th><th>Presença digital</th><th>Oportunidade hipotética</th><th>Score / prioridade</th><th>CRM</th><th aria-label="Abrir" /></tr></thead><tbody>{rows.map((lead) => { const current = state[lead.id] ?? createDefaultLeadState(); const score = getProspectingScore(current.qualification); return <tr key={lead.id} className={selectedLeadId === lead.id ? 'lead-selected' : undefined} aria-selected={selectedLeadId === lead.id} onClick={() => onOpenLead(lead)}><td><div className="business-cell"><div className="business-avatar">{lead.name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').replace(/[—(]/g, '')}</div><div><strong>{lead.name}</strong><small><MapPin size={12} />{lead.address.split(',').slice(-2).join(',').trim()}</small></div></div></td><td><span className={`site-status ${siteStatusClass(lead.websiteStatus)}`}><span />{lead.websiteStatus}</span>{lead.website && <small className="website-host">{new URL(lead.website).hostname.replace('www.', '')}</small>}</td><td><div className="offer-cell"><strong>{getOfferTypes(lead)[0]}</strong><small>{lead.offer.length > 72 ? `${lead.offer.slice(0, 72)}…` : lead.offer}</small></div></td><td><div className="lead-score-cell"><span className="score-mini">{score === null ? '—' : `${score}/100`}</span><small>{getScoreLabel(score)}</small><span className={`priority-chip ${statusClass(lead.priority)}`}>{lead.priority}</span></div></td><td onClick={(event) => event.stopPropagation()}><select className="stage-select" aria-label={`Estágio CRM de ${lead.name}`} value={current.stage} onChange={(event) => updateLead(lead.id, { stage: event.target.value as Stage })}>{stages.map((stage) => <option key={stage} disabled={!canTransitionStage(current.stage, stage)}>{stage}</option>)}</select></td><td><button className="row-open" aria-label={`Abrir ${lead.name}`} onClick={(event) => { event.stopPropagation(); onOpenLead(lead) }}><ChevronRight size={17} /></button></td></tr> })}</tbody></table></div>
     {!rows.length && <div className="empty-state"><Search size={23} /><strong>Nenhum lead encontrado</strong><span>Tente mudar os filtros ou o termo da busca.</span></div>}
     <div className="table-footer"><span>Exibindo {rows.length} de {totalCount} leads na base</span><span><ShieldCheck size={14} /> Oportunidades ainda não validadas</span></div>
-  </section>
+    </section>
+  </>
 }
 
 function CRMPage({ leads: rows, state, updateLead, selectedLeadId, onOpenLead }: { leads: Lead[]; state: LocalState; updateLead: (id: string, updates: LeadStateUpdate) => void; selectedLeadId?: string; onOpenLead: (lead: Lead) => void }) {
@@ -578,17 +623,17 @@ function LeadDetail({ lead, state, onChange, onClose }: { lead: Lead; state: Lea
   }, [lead.id])
 
   return <div className="detail-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><aside ref={drawerRef} className="detail-drawer" role="dialog" aria-modal="true" aria-label={`Detalhes de ${lead.name}`} tabIndex={-1}><div className="detail-top"><span className="eyebrow">FICHA DO LEAD</span><button ref={closeButtonRef} className="icon-button" aria-label="Fechar ficha" onClick={onClose}><X size={19} /></button></div><div className="detail-title-row"><div className="detail-avatar">{lead.name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').replace(/[—(]/g, '')}</div><div><h2>{lead.name}</h2><span><MapPin size={13} /> {lead.address.split(',').slice(-2).join(',').trim()}</span></div></div><div className="detail-chips"><span className={`site-status ${siteStatusClass(lead.websiteStatus)}`}><span />{lead.websiteStatus}</span><span className={`priority-chip ${statusClass(lead.priority)}`}>{lead.priority}</span></div>
-    <div className="detail-actions">{lead.website && <a className="button-primary" href={lead.website} target="_blank" rel="noreferrer">{lead.origin === 'planilha' ? 'Abrir URL informada' : 'Abrir site'} <ExternalLink size={15} /></a>}{lead.instagram && <a className="button-outline" href={lead.instagram} target="_blank" rel="noreferrer"><Camera size={15} /> {lead.origin === 'planilha' ? 'Instagram informado' : 'Instagram'}</a>}</div>
+    <div className="detail-actions">{lead.website && <a className="button-primary" href={lead.website} target="_blank" rel="noreferrer">{lead.origin === 'planilha' || lead.origin === 'manual' ? 'Abrir URL informada' : 'Abrir site'} <ExternalLink size={15} /></a>}{lead.instagram && <a className="button-outline" href={lead.instagram} target="_blank" rel="noreferrer"><Camera size={15} /> {lead.origin === 'planilha' || lead.origin === 'manual' ? 'Instagram informado' : 'Instagram'}</a>}</div>
     {lead.instagram && <div className="data-note profile-extraction-note"><ShieldCheck size={15} /><span>O link é mantido como fonte; este painel não extrai automaticamente bio, publicações, WhatsApp ou links externos. Abra o perfil, confirme o dado e registre a evidência em “Validar dados”.</span></div>}
     <div className="detail-divider" />
-    <section className="detail-section"><div className="detail-section-heading"><h3>O que foi observado</h3><span className="soft-badge">{lead.origin === 'planilha' ? 'Origem: planilha' : 'Fonte pública'}</span></div><p className="detail-service">{lead.services}</p>{lead.evidence.map((fact) => <div className="evidence-line" key={fact}><BadgeCheck size={15} /><span>{fact}</span></div>)}</section>
+    <section className="detail-section"><div className="detail-section-heading"><h3>O que foi observado</h3><span className="soft-badge">{lead.origin === 'planilha' ? 'Origem: planilha' : lead.origin === 'manual' ? 'Origem: cadastro manual' : 'Fonte pública'}</span></div><p className="detail-service">{lead.services}</p>{lead.evidence.map((fact) => <div className="evidence-line" key={fact}><BadgeCheck size={15} /><span>{fact}</span></div>)}</section>
     <section className="detail-section"><h3>Oportunidade para você</h3><div className="hypothesis-box"><span className="hypothesis-label"><Sparkles size={14} /> HIPÓTESE A VALIDAR</span><p>{lead.offer}</p><small>Não há confirmação de necessidade, orçamento ou intenção de compra.</small></div></section>
-    <section className="detail-section"><h3>{lead.origin === 'planilha' ? 'Contatos informados na planilha' : 'Contato público'}</h3><div className="contact-list">{lead.contacts.map((contact) => <div className="contact-row" key={`${contact.label}-${contact.value}`}><span>{contact.label}<small>{contact.type === 'planilha' ? 'Importado · não verificado' : contact.type === 'direto' ? 'Fonte do negócio' : contact.type === 'social' ? 'Perfil/publicação social' : 'Diretório de terceiros'}</small></span><strong>{contact.value}</strong></div>)}{!lead.contacts.length && <span>Contato não informado na planilha.</span>}</div><div className="address-box"><MapPin size={15} /><span>{lead.address}</span></div></section>
+    <section className="detail-section"><h3>{lead.origin === 'planilha' ? 'Contatos informados na planilha' : lead.origin === 'manual' ? 'Contatos cadastrados manualmente' : 'Contato público'}</h3><div className="contact-list">{lead.contacts.map((contact) => <div className="contact-row" key={`${contact.label}-${contact.value}`}><span>{contact.label}<small>{contact.type === 'planilha' ? 'Importado · não verificado' : contact.type === 'manual' ? 'Informado manualmente · não verificado' : contact.type === 'direto' ? 'Fonte do negócio' : contact.type === 'social' ? 'Perfil/publicação social' : 'Diretório de terceiros'}</small></span><strong>{contact.value}</strong></div>)}{!lead.contacts.length && <span>Contato não informado.</span>}</div><div className="address-box"><MapPin size={15} /><span>{lead.address}</span></div></section>
     <LeadQualificationPanel lead={lead} qualification={state.qualification} contactMade={['Contato feito', 'Em conversa', 'Proposta enviada', 'Cliente'].includes(state.stage)} onChange={(updates) => onChange(lead.id, { qualification: updates })} onMarkReady={() => onChange(lead.id, { stage: 'Pronto para contato' })} />
     <section className="detail-section"><h3>Agendamento observado</h3><p className="detail-service">{lead.scheduling}</p></section>
     <section className="detail-section"><h3>CRM interno</h3><label className="field-label">Estágio<select value={state.stage} onChange={(event) => onChange(lead.id, { stage: event.target.value as Stage })}>{stages.map((stage) => <option key={stage} disabled={!canTransitionStage(state.stage, stage)}>{stage}</option>)}</select></label><label className="field-label">Nota interna <textarea value={state.notes} onChange={(event) => onChange(lead.id, { notes: event.target.value })} placeholder="Registre somente o próximo passo ou observações não sensíveis." rows={3} /></label><small className="field-footnote"><ShieldCheck size={13} /> Salvo neste navegador. Não inclua dados de saúde ou informações sensíveis.</small></section>
-    <section className="detail-section"><div className="detail-source-heading"><h3>{lead.origin === 'planilha' ? 'Origem dos dados' : 'Fontes e consulta'}</h3><span>{lead.origin === 'planilha' ? lead.importedAt : lead.lastReviewedAt ?? researchedAt}</span></div><div className="source-list">{lead.origin === 'planilha' && <div className="source-item"><span><strong>Importação local · arquivo não armazenado</strong><small>Campos selecionados pelo usuário; não são uma fonte pública nem foram verificados independentemente.</small></span></div>}{lead.sources.map((source, index) => source.url ? <a className="source-item" href={source.url} target="_blank" rel="noreferrer" key={`${source.url}-${index}`}><span><strong>{source.label}</strong><small>{source.supports}</small></span><ExternalLink size={14} /></a> : <div className="source-item" key={`${source.label}-${index}`}><span><strong>{source.label}</strong><small>{source.supports}</small></span></div>)}{!lead.sources.length && lead.origin !== 'planilha' && <span>Nenhuma fonte externa anexada.</span>}</div><div className="confidence-note"><ShieldCheck size={15} /><span>{lead.confidence}</span></div></section>
-    <div className="detail-footer"><ShieldCheck size={15} /> {lead.origin === 'planilha' ? 'Confirme a origem dos contatos e os dados antes de qualquer abordagem.' : 'Dados públicos podem mudar; revalide antes de abordar.'}</div>
+    <section className="detail-section"><div className="detail-source-heading"><h3>{lead.origin === 'planilha' || lead.origin === 'manual' ? 'Origem dos dados' : 'Fontes e consulta'}</h3><span>{lead.origin === 'planilha' || lead.origin === 'manual' ? lead.importedAt : lead.lastReviewedAt ?? researchedAt}</span></div><div className="source-list">{lead.origin === 'planilha' && <div className="source-item"><span><strong>Importação local · arquivo não armazenado</strong><small>Campos selecionados pelo usuário; não são uma fonte pública nem foram verificados independentemente.</small></span></div>}{lead.origin === 'manual' && <div className="source-item"><span><strong>Cadastro manual · salvo neste navegador</strong><small>Os dados e links foram informados pelo usuário; confirme-os antes de qualquer abordagem.</small></span></div>}{lead.sources.map((source, index) => source.url ? <a className="source-item" href={source.url} target="_blank" rel="noreferrer" key={`${source.url}-${index}`}><span><strong>{source.label}</strong><small>{source.supports}</small></span><ExternalLink size={14} /></a> : <div className="source-item" key={`${source.label}-${index}`}><span><strong>{source.label}</strong><small>{source.supports}</small></span></div>)}{!lead.sources.length && lead.origin !== 'planilha' && lead.origin !== 'manual' && <span>Nenhuma fonte externa anexada.</span>}</div><div className="confidence-note"><ShieldCheck size={15} /><span>{lead.confidence}</span></div></section>
+    <div className="detail-footer"><ShieldCheck size={15} /> {lead.origin === 'planilha' || lead.origin === 'manual' ? 'Confirme a origem dos contatos e os dados antes de qualquer abordagem.' : 'Dados públicos podem mudar; revalide antes de abordar.'}</div>
   </aside></div>
 }
 

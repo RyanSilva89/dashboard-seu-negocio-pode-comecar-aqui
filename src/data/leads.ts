@@ -1,5 +1,5 @@
 export type Priority = 'Alta provisória' | 'Média-alta provisória' | 'Média provisória' | 'Média-baixa provisória' | 'Baixa provisória'
-export type SiteStatus = 'Confirmado' | 'Não localizado nas fontes consultadas' | 'Informado na planilha · não verificado' | 'Não informado na planilha'
+export type SiteStatus = 'Confirmado' | 'Não localizado nas fontes consultadas' | 'Informado na planilha · não verificado' | 'URL informada · não verificada' | 'Não informado na planilha'
 
 export type LeadSource = {
   label: string
@@ -12,7 +12,7 @@ export type Lead = {
   name: string
   specialty: string
   address: string
-  contacts: { label: string; value: string; type: 'direto' | 'diretório' | 'social' | 'planilha' }[]
+  contacts: { label: string; value: string; type: 'direto' | 'diretório' | 'social' | 'planilha' | 'manual' }[]
   website: string | null
   websiteStatus: SiteStatus
   city?: string
@@ -26,7 +26,7 @@ export type Lead = {
   priorityReason: string
   confidence: string
   sources: LeadSource[]
-  origin?: 'pesquisa' | 'planilha'
+  origin?: 'pesquisa' | 'planilha' | 'manual'
   importedAt?: string
   lastReviewedAt?: string
 }
