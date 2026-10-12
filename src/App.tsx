@@ -24,9 +24,11 @@ import {
   Menu,
   MessageSquareText,
   MoreHorizontal,
+  Moon,
   Search,
   ShieldCheck,
   Sparkles,
+  Sun,
   Target,
   Users,
   WalletCards,
@@ -162,6 +164,13 @@ function isNeedsReview(qualification: LeadQualification = createDefaultQualifica
 
 function App() {
   const [page, setPage] = useState<PageKey>('dashboard')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      return localStorage.getItem('seu-site-theme') === 'light' ? 'light' : 'dark'
+    } catch {
+      return 'dark'
+    }
+  })
   const mainAreaRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     mainAreaRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
@@ -181,6 +190,16 @@ function App() {
   const [reviewFilter, setReviewFilter] = useState('Todas as fichas')
   const [sourceFilter, setSourceFilter] = useState('Todas as fontes')
   const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#101722' : '#f5f7fb')
+    try {
+      localStorage.setItem('seu-site-theme', theme)
+    } catch {
+      setToast('Não foi possível salvar a preferência de tema neste navegador.')
+    }
+  }, [theme])
 
   useEffect(() => {
     localStorage.setItem(appStorageKey, JSON.stringify(state))
@@ -298,7 +317,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-theme={theme}>
       <button className={`mobile-scrim ${drawerOpen ? 'visible' : ''}`} aria-label="Fechar menu" onClick={() => setDrawerOpen(false)} />
       <aside className={`sidebar ${drawerOpen ? 'sidebar-open' : ''}`}>
         <div className="brand-row">
@@ -336,6 +355,10 @@ function App() {
           </div>
           <div className="topbar-right">
             <div className="topbar-date"><span className="live-dot" /> Base inicial pesquisada em {researchedAt}</div>
+            <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')} aria-label={`Ativar tema ${theme === 'light' ? 'escuro' : 'claro'}`} title={`Ativar tema ${theme === 'light' ? 'escuro' : 'claro'}`}>
+              {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
+              <span>{theme === 'light' ? 'Escuro' : 'Claro'}</span>
+            </button>
             <div className="topbar-avatar">SC</div>
           </div>
         </header>
