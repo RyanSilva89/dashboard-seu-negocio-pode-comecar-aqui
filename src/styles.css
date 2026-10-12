@@ -708,6 +708,7 @@ h1, h2, h3, p { margin-top: 0; }
 .ready-gate .button-primary { width: 100%; justify-content: center; min-height: 34px; font-size: 9px; }
 .ready-gate .button-primary:disabled { cursor: not-allowed; opacity: .48; }
 .ready-gate p { margin: 7px 0 0; color: #8993a2; font-size: 8px; line-height: 1.45; }
+.ready-gate-issues { margin: 6px 0 0; padding-left: 18px; color: #8993a2; font-size: 8px; line-height: 1.5; }
 @media (max-width: 1180px) {
   .kanban-board { grid-template-columns: repeat(8, minmax(190px, 1fr)); }
 }
@@ -867,7 +868,8 @@ h1, h2, h3, p { margin-top: 0; }
   .temperature-banner strong,
   .temperature-banner small,
   .ready-gate .button-primary,
-  .ready-gate p { font-size: 12px; }
+  .ready-gate p,
+  .ready-gate-issues { font-size: 12px; }
   .quick-validation-body ol { line-height: 1.7; }
   .qualification-section .field-label input { min-height: 42px; padding: 10px 11px; }
   .score-explanation { font-size: 12px; line-height: 1.65; }

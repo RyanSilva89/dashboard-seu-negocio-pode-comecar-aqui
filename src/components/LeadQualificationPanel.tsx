@@ -1,7 +1,7 @@
 import { BadgeCheck, CalendarClock, CircleAlert, ClipboardCheck, ShieldCheck, Target } from 'lucide-react'
 import {
-  canMarkReadyForContact,
   getClientConfirmationBonus,
+  getContactReadinessSuggestions,
   getInterestTemperature,
   getProspectingScore,
   getPublicScore,
@@ -60,8 +60,8 @@ export default function LeadQualificationPanel({ lead, qualification, contactMad
   const confirmationBonus = getClientConfirmationBonus(qualification)
   const scoreBreakdown = getScoreBreakdown(qualification)
   const validationLabel = getValidationLabel(qualification)
-  const ready = canMarkReadyForContact(qualification)
-  const accessRestricted = qualification.identityStatus === 'access-restricted' || qualification.contactStatus === 'access-restricted'
+  const readinessSuggestions = getContactReadinessSuggestions(qualification)
+  const validationComplete = readinessSuggestions.length === 0
   const showInterestTracking = contactMade || qualification.interestStatus !== 'no-response' || Boolean(qualification.interestEvidence.trim() || qualification.interestDate)
   const temperature = getInterestTemperature(qualification)
   const originalContact = defaultContact(lead)
@@ -124,7 +124,7 @@ export default function LeadQualificationPanel({ lead, qualification, contactMad
         </div>
       </details>
 
-      <div className={`qualification-score ${ready ? 'score-qualifies' : ''}`}>
+      <div className={`qualification-score ${validationComplete ? 'score-qualifies' : ''}`}>
         <div className="qualification-score-top">
           <div><span className="qualification-kicker"><Target size={13} /> PRIORIDADE DE PROSPECÇÃO</span><strong>{score === null ? '—' : score}<small>{score === null ? '' : ' / 100'}</small></strong><span className="qualification-score-label">{getScoreLabel(score)}</span></div>
           <div className="qualification-score-mark"><ShieldCheck size={20} /></div>
@@ -210,8 +210,9 @@ export default function LeadQualificationPanel({ lead, qualification, contactMad
       </> : <p className="field-footnote">O registro de resposta e interesse ficará disponível após mover o lead para “Contato feito”. Não é obrigatório para liberar ou registrar o primeiro contato.</p>}
 
       <div className="ready-gate">
-        <button className="button-primary" type="button" disabled={!ready} onClick={onMarkReady}><BadgeCheck size={15} /> Marcar “Pronto para contato”</button>
-        <p>{ready ? 'Dados e score público atendem aos critérios mínimos. A data da conferência é recomendada e adiciona pontos; revise sua mensagem antes de qualquer abordagem.' : accessRestricted ? 'O acesso está restrito. Não considere os dados confirmados nem avance para contato até conseguir revisar uma fonte válida.' : `Para liberar: score público ≥ ${scoringWeights.minimumPublicScoreToContact}, um serviço compatível, identidade e contato confirmados, URL e nota válidas. Registrar a data é recomendado, mas não obrigatório para liberar.`}</p>
+        <button className="button-primary" type="button" onClick={onMarkReady}><BadgeCheck size={15} /> Marcar “Pronto para contato”</button>
+        <p>O estágio é manual: score, identidade, contato, URL e nota servem para seu acompanhamento e não bloqueiam o botão. Revise os dados antes de abordar.</p>
+        {readinessSuggestions.length > 0 && <><p>Conferências que você pode completar, se desejar:</p><ul className="ready-gate-issues">{readinessSuggestions.map((suggestion) => <li key={suggestion}>{suggestion}</li>)}</ul></>}
       </div>
     </section>
   )

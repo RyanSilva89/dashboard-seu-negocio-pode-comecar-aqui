@@ -42,7 +42,7 @@ import MascotMaker from './components/MascotMaker'
 import SpreadsheetImporter from './components/SpreadsheetImporter'
 import AutomationLearning from './components/AutomationLearning'
 import LeadQualificationPanel from './components/LeadQualificationPanel'
-import { canMarkReadyForContact, createDefaultQualification, getProspectingScore, getScoreLabel, getValidationLabel, normalizeQualification, scoringWeights, type LeadQualification } from './data/leadQualification'
+import { createDefaultQualification, getProspectingScore, getScoreLabel, getValidationLabel, normalizeQualification, scoringWeights, type LeadQualification } from './data/leadQualification'
 
 type IconType = ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
 type PageKey = 'dashboard' | 'leads' | 'crm' | 'appointments' | 'projects' | 'markets' | 'import' | 'mascot' | 'learn' | 'billing' | 'ranking' | 'templates' | 'affiliate' | 'sitebuilder'
@@ -55,15 +55,14 @@ const stages: Stage[] = ['Mapeado', 'Qualificar', 'Pronto para contato', 'Contat
 const boardStages: Stage[] = [...stages]
 const orderedPipelineStages: Stage[] = ['Mapeado', 'Qualificar', 'Pronto para contato', 'Contato feito', 'Em conversa', 'Proposta enviada', 'Cliente']
 
-function canTransitionStage(current: Stage, target: Stage, qualification: LeadQualification) {
+function canTransitionStage(current: Stage, target: Stage) {
   if (current === target || target === 'Sem prioridade') return true
   const currentIndex = orderedPipelineStages.indexOf(current)
   const targetIndex = orderedPipelineStages.indexOf(target)
-  const ready = canMarkReadyForContact(qualification)
-  if (target === 'Pronto para contato') return ready && (current === 'Mapeado' || current === 'Qualificar' || current === 'Sem prioridade' || targetIndex < currentIndex)
-  if (targetIndex < currentIndex) return targetIndex < 2 || ready
+  if (target === 'Pronto para contato') return current === 'Mapeado' || current === 'Qualificar' || current === 'Sem prioridade' || targetIndex < currentIndex
+  if (targetIndex < currentIndex) return true
   if (targetIndex !== currentIndex + 1) return false
-  return targetIndex < 2 || ready
+  return true
 }
 
 function createDefaultLeadState(): LeadState {
@@ -251,15 +250,11 @@ function App() {
       opportunities: { ...current.qualification.opportunities, ...(incomingQualification.opportunities ?? {}) },
     } : current.qualification)
     const next: LeadState = { ...current, ...updates, qualification }
-    if (updates.stage && !canTransitionStage(current.stage, updates.stage, qualification)) {
+    if (updates.stage && !canTransitionStage(current.stage, updates.stage)) {
       setToast(updates.stage === 'Pronto para contato' || updates.stage === 'Contato feito'
-        ? 'Confirme identidade, contato, fonte e serviço (score ≥ 45) e avance pela sequência do pipeline.'
-        : 'Avance uma etapa por vez; valide o lead antes de registrar contato, conversa, proposta ou cliente.')
+        ? 'Atualize os estágios manualmente e avance pela sequência do pipeline.'
+        : 'Avance uma etapa por vez no pipeline.')
       return
-    }
-    if (incomingQualification && (next.stage === 'Pronto para contato' || next.stage === 'Contato feito') && !canMarkReadyForContact(qualification)) {
-      next.stage = 'Qualificar'
-      setToast('A etapa voltou para Qualificar porque identidade, contato, fonte, serviço ou score deixaram de atender aos critérios.')
     }
     setState((currentState) => ({ ...currentState, [leadId]: next }))
   }
@@ -450,7 +445,7 @@ function LeadsPage({ leads: rows, totalCount, cityOptions, nicheOptions, search,
   return <section className="panel leads-panel">
     <div className="table-toolbar"><div className="toolbar-title"><div><h3>Base de leads <span className="count-bubble">{rows.length}</span></h3><p>Pesquisados e importados; confira a origem e o nível de verificação por ficha.</p></div></div><div className="search-box"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar negócio, serviço ou cidade" aria-label="Buscar leads" />{search && <button aria-label="Limpar busca" onClick={() => setSearch('')}><X size={15} /></button>}</div></div>
     <div className="filter-bar"><label className="filter-select"><span>Cidade</span><select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}><option>Todas as cidades</option>{cityOptions.map((city) => <option key={city}>{city}</option>)}</select><ChevronDown size={14} /></label><label className="filter-select"><span>Nicho</span><select value={nicheFilter} onChange={(event) => setNicheFilter(event.target.value)}><option>Todos os nichos</option>{nicheOptions.map((niche) => <option key={niche}>{niche}</option>)}</select><ChevronDown size={14} /></label><label className="filter-select"><span>Site</span><select value={siteFilter} onChange={(event) => setSiteFilter(event.target.value)}><option>Todos os sites</option><option>Site confirmado</option><option>URL informada · não verificada</option><option>Site não localizado</option><option>Sem URL na planilha</option></select><ChevronDown size={14} /></label><label className="filter-select"><span>Prioridade provisória</span><select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}><option>Todas as prioridades</option><option>Alta provisória</option><option>Média-alta provisória</option><option>Média provisória</option><option>Média-baixa provisória</option><option>Baixa provisória</option></select><ChevronDown size={14} /></label><label className="filter-select"><span>Oferta</span><select value={offerFilter} onChange={(event) => setOfferFilter(event.target.value)}><option>Todas as ofertas</option><option>Site / landing page</option><option>Automação / agendamento</option><option>Instagram / visual</option><option>Validação inicial</option></select><ChevronDown size={14} /></label><label className="filter-select"><span>Verificação</span><select value={reviewFilter} onChange={(event) => setReviewFilter(event.target.value)}><option>Todas as fichas</option><option>Validação pendente</option><option>Conferidos manualmente</option></select><ChevronDown size={14} /></label><label className="filter-select"><span>Fontes</span><select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option>Todas as fontes</option><option>Com fontes</option><option>Sem fontes</option></select><ChevronDown size={14} /></label></div>
-    <div className="table-scroll"><table className="lead-table"><thead><tr><th>Negócio</th><th>Presença digital</th><th>Oportunidade hipotética</th><th>Score / prioridade</th><th>CRM</th><th aria-label="Abrir" /></tr></thead><tbody>{rows.map((lead) => { const current = state[lead.id] ?? createDefaultLeadState(); const score = getProspectingScore(current.qualification); return <tr key={lead.id} className={selectedLeadId === lead.id ? 'lead-selected' : undefined} aria-selected={selectedLeadId === lead.id} onClick={() => onOpenLead(lead)}><td><div className="business-cell"><div className="business-avatar">{lead.name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').replace(/[—(]/g, '')}</div><div><strong>{lead.name}</strong><small><MapPin size={12} />{lead.address.split(',').slice(-2).join(',').trim()}</small></div></div></td><td><span className={`site-status ${siteStatusClass(lead.websiteStatus)}`}><span />{lead.websiteStatus}</span>{lead.website && <small className="website-host">{new URL(lead.website).hostname.replace('www.', '')}</small>}</td><td><div className="offer-cell"><strong>{getOfferTypes(lead)[0]}</strong><small>{lead.offer.length > 72 ? `${lead.offer.slice(0, 72)}…` : lead.offer}</small></div></td><td><div className="lead-score-cell"><span className="score-mini">{score === null ? '—' : `${score}/100`}</span><small>{getScoreLabel(score)}</small><span className={`priority-chip ${statusClass(lead.priority)}`}>{lead.priority}</span></div></td><td onClick={(event) => event.stopPropagation()}><select className="stage-select" aria-label={`Estágio CRM de ${lead.name}`} value={current.stage} onChange={(event) => updateLead(lead.id, { stage: event.target.value as Stage })}>{stages.map((stage) => <option key={stage} disabled={!canTransitionStage(current.stage, stage, current.qualification)}>{stage}</option>)}</select></td><td><button className="row-open" aria-label={`Abrir ${lead.name}`} onClick={(event) => { event.stopPropagation(); onOpenLead(lead) }}><ChevronRight size={17} /></button></td></tr> })}</tbody></table></div>
+    <div className="table-scroll"><table className="lead-table"><thead><tr><th>Negócio</th><th>Presença digital</th><th>Oportunidade hipotética</th><th>Score / prioridade</th><th>CRM</th><th aria-label="Abrir" /></tr></thead><tbody>{rows.map((lead) => { const current = state[lead.id] ?? createDefaultLeadState(); const score = getProspectingScore(current.qualification); return <tr key={lead.id} className={selectedLeadId === lead.id ? 'lead-selected' : undefined} aria-selected={selectedLeadId === lead.id} onClick={() => onOpenLead(lead)}><td><div className="business-cell"><div className="business-avatar">{lead.name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').replace(/[—(]/g, '')}</div><div><strong>{lead.name}</strong><small><MapPin size={12} />{lead.address.split(',').slice(-2).join(',').trim()}</small></div></div></td><td><span className={`site-status ${siteStatusClass(lead.websiteStatus)}`}><span />{lead.websiteStatus}</span>{lead.website && <small className="website-host">{new URL(lead.website).hostname.replace('www.', '')}</small>}</td><td><div className="offer-cell"><strong>{getOfferTypes(lead)[0]}</strong><small>{lead.offer.length > 72 ? `${lead.offer.slice(0, 72)}…` : lead.offer}</small></div></td><td><div className="lead-score-cell"><span className="score-mini">{score === null ? '—' : `${score}/100`}</span><small>{getScoreLabel(score)}</small><span className={`priority-chip ${statusClass(lead.priority)}`}>{lead.priority}</span></div></td><td onClick={(event) => event.stopPropagation()}><select className="stage-select" aria-label={`Estágio CRM de ${lead.name}`} value={current.stage} onChange={(event) => updateLead(lead.id, { stage: event.target.value as Stage })}>{stages.map((stage) => <option key={stage} disabled={!canTransitionStage(current.stage, stage)}>{stage}</option>)}</select></td><td><button className="row-open" aria-label={`Abrir ${lead.name}`} onClick={(event) => { event.stopPropagation(); onOpenLead(lead) }}><ChevronRight size={17} /></button></td></tr> })}</tbody></table></div>
     {!rows.length && <div className="empty-state"><Search size={23} /><strong>Nenhum lead encontrado</strong><span>Tente mudar os filtros ou o termo da busca.</span></div>}
     <div className="table-footer"><span>Exibindo {rows.length} de {totalCount} leads na base</span><span><ShieldCheck size={14} /> Oportunidades ainda não validadas</span></div>
   </section>
@@ -458,29 +453,28 @@ function LeadsPage({ leads: rows, totalCount, cityOptions, nicheOptions, search,
 
 function CRMPage({ leads: rows, state, updateLead, selectedLeadId, onOpenLead }: { leads: Lead[]; state: LocalState; updateLead: (id: string, updates: LeadStateUpdate) => void; selectedLeadId?: string; onOpenLead: (lead: Lead) => void }) {
   const leadState = (lead: Lead) => state[lead.id] ?? createDefaultLeadState()
-  const eligibleRows = rows.filter((lead) => canMarkReadyForContact(leadState(lead).qualification))
   const verifiedCount = rows.filter((lead) => getValidationLabel(leadState(lead).qualification) === 'Conferido manualmente').length
-  const readyCount = eligibleRows.filter((lead) => leadState(lead).stage === 'Pronto para contato').length
+  const readyCount = rows.filter((lead) => leadState(lead).stage === 'Pronto para contato').length
   const contactedStages: Stage[] = ['Contato feito', 'Em conversa', 'Proposta enviada', 'Cliente']
   const replyStages: Stage[] = ['Em conversa', 'Proposta enviada', 'Cliente']
   const proposalStages: Stage[] = ['Proposta enviada', 'Cliente']
-  const contactedCount = eligibleRows.filter((lead) => contactedStages.includes(leadState(lead).stage)).length
-  const repliedCount = eligibleRows.filter((lead) => replyStages.includes(leadState(lead).stage)).length
-  const proposalBase = eligibleRows.filter((lead) => replyStages.includes(leadState(lead).stage)).length
-  const proposalCount = eligibleRows.filter((lead) => proposalStages.includes(leadState(lead).stage)).length
+  const contactedCount = rows.filter((lead) => contactedStages.includes(leadState(lead).stage)).length
+  const repliedCount = rows.filter((lead) => replyStages.includes(leadState(lead).stage)).length
+  const proposalBase = rows.filter((lead) => replyStages.includes(leadState(lead).stage)).length
+  const proposalCount = rows.filter((lead) => proposalStages.includes(leadState(lead).stage)).length
   const responseRate = contactedCount ? `${Math.round(repliedCount / contactedCount * 100)}%` : '—'
   const proposalRate = proposalBase ? `${Math.round(proposalCount / proposalBase * 100)}%` : '—'
   return <>
-    <div className="crm-intro"><div className="crm-intro-icon"><Activity size={20} /></div><div><strong>Seu pipeline, atualizado por você</strong><span>Valide os dados antes de avançar para “Pronto para contato”. Nenhuma mensagem é enviada.</span></div><span className="saved-local"><ShieldCheck size={14} /> Local</span></div>
+    <div className="crm-intro"><div className="crm-intro-icon"><Activity size={20} /></div><div><strong>Seu pipeline, atualizado por você</strong><span>Os estágios são manuais; score e conferências são referências para seu acompanhamento. Nenhuma mensagem é enviada.</span></div><span className="saved-local"><ShieldCheck size={14} /> Local</span></div>
     <section className="panel crm-metrics-panel">
-      <div className="panel-heading"><div><h3>Eficiência do pipeline</h3><p>Métricas por lead elegível, calculadas neste navegador.</p></div><span className="soft-badge">Sem envio automático</span></div>
+      <div className="panel-heading"><div><h3>Eficiência do pipeline</h3><p>Métricas pelos estágios registrados manualmente neste navegador.</p></div><span className="soft-badge">Sem envio automático</span></div>
       <div className="crm-metrics-grid">
         <div className="crm-metric"><span>Dados conferidos</span><strong>{verifiedCount}/{rows.length}</strong><small>{rows.length ? `${Math.round(verifiedCount / rows.length * 100)}% · identidade, contato, fonte e data` : 'Sem leads'}</small></div>
-        <div className="crm-metric"><span>Prontos para contato</span><strong>{rows.length ? `${readyCount}/${rows.length}` : '—'}</strong><small>{rows.length ? `${Math.round(readyCount / rows.length * 100)}% do total · ${eligibleRows.length} leads atendem ao gate` : 'Sem leads'}</small></div>
+        <div className="crm-metric"><span>Prontos para contato</span><strong>{rows.length ? `${readyCount}/${rows.length}` : '—'}</strong><small>{rows.length ? `${Math.round(readyCount / rows.length * 100)}% do total · estágio escolhido manualmente` : 'Sem leads'}</small></div>
         <div className="crm-metric"><span>Taxa de resposta</span><strong>{responseRate}</strong><small>{contactedCount ? `${repliedCount} respostas / ${contactedCount} leads contatados` : 'Sem amostra de contatos'}</small></div>
         <div className="crm-metric"><span>Avanço a proposta</span><strong>{proposalRate}</strong><small>{proposalBase ? `${proposalCount} em proposta/cliente / ${proposalBase} com resposta` : 'Sem amostra de conversas'}</small></div>
       </div>
-      <p className="crm-metric-definition">Resposta = Em conversa, Proposta enviada ou Cliente ÷ Contato feito ou etapas posteriores. Avanço = Proposta enviada ou Cliente ÷ leads que responderam. Etapas de conversa permanecem registradas; as taxas só incluem leads cujo gate atual continua válido. “—” significa denominador zero.</p>
+      <p className="crm-metric-definition">Resposta = Em conversa, Proposta enviada ou Cliente ÷ Contato feito ou etapas posteriores. Avanço = Proposta enviada ou Cliente ÷ leads que responderam. As taxas consideram os estágios registrados manualmente. “—” significa denominador zero.</p>
     </section>
     <div className="kanban-board">{boardStages.map((stage, index) => {
       const cards = rows.filter((lead) => leadState(lead).stage === stage)
@@ -496,7 +490,7 @@ function CRMPage({ leads: rows, state, updateLead, selectedLeadId, onOpenLead }:
             <small className="kanban-verification">{getValidationLabel(current.qualification)} · {score === null ? 'avaliação pendente' : score >= 50 ? 'revisar encaixe' : score === 0 ? 'sem encaixe' : 'baixa prioridade'}</small>
             <p>{getOfferTypes(lead)[0]} · hipótese a validar</p>
             {current.qualification.nextAction && <small className="kanban-next-action">Próximo passo: {current.qualification.nextAction}{current.qualification.nextActionDate ? ` · ${current.qualification.nextActionDate}` : ''}</small>}
-            <label className="kanban-stage-control">Mover para<select value={stage} onChange={(event) => updateLead(lead.id, { stage: event.target.value as Stage })}>{stages.map((item) => <option key={item} disabled={!canTransitionStage(current.stage, item, current.qualification)}>{item}</option>)}</select></label>
+            <label className="kanban-stage-control">Mover para<select value={stage} onChange={(event) => updateLead(lead.id, { stage: event.target.value as Stage })}>{stages.map((item) => <option key={item} disabled={!canTransitionStage(current.stage, item)}>{item}</option>)}</select></label>
           </article>
         })}{!cards.length && <div className="kanban-empty">Nenhum lead neste estágio.</div>}</div>
       </section>
@@ -582,7 +576,7 @@ function LeadDetail({ lead, state, onChange, onClose }: { lead: Lead; state: Lea
     <section className="detail-section"><h3>{lead.origin === 'planilha' ? 'Contatos informados na planilha' : 'Contato público'}</h3><div className="contact-list">{lead.contacts.map((contact) => <div className="contact-row" key={`${contact.label}-${contact.value}`}><span>{contact.label}<small>{contact.type === 'planilha' ? 'Importado · não verificado' : contact.type === 'direto' ? 'Fonte do negócio' : contact.type === 'social' ? 'Perfil/publicação social' : 'Diretório de terceiros'}</small></span><strong>{contact.value}</strong></div>)}{!lead.contacts.length && <span>Contato não informado na planilha.</span>}</div><div className="address-box"><MapPin size={15} /><span>{lead.address}</span></div></section>
     <LeadQualificationPanel lead={lead} qualification={state.qualification} contactMade={['Contato feito', 'Em conversa', 'Proposta enviada', 'Cliente'].includes(state.stage)} onChange={(updates) => onChange(lead.id, { qualification: updates })} onMarkReady={() => onChange(lead.id, { stage: 'Pronto para contato' })} />
     <section className="detail-section"><h3>Agendamento observado</h3><p className="detail-service">{lead.scheduling}</p></section>
-    <section className="detail-section"><h3>CRM interno</h3><label className="field-label">Estágio<select value={state.stage} onChange={(event) => onChange(lead.id, { stage: event.target.value as Stage })}>{stages.map((stage) => <option key={stage} disabled={!canTransitionStage(state.stage, stage, state.qualification)}>{stage}</option>)}</select></label><label className="field-label">Nota interna <textarea value={state.notes} onChange={(event) => onChange(lead.id, { notes: event.target.value })} placeholder="Registre somente o próximo passo ou observações não sensíveis." rows={3} /></label><small className="field-footnote"><ShieldCheck size={13} /> Salvo neste navegador. Não inclua dados de saúde ou informações sensíveis.</small></section>
+    <section className="detail-section"><h3>CRM interno</h3><label className="field-label">Estágio<select value={state.stage} onChange={(event) => onChange(lead.id, { stage: event.target.value as Stage })}>{stages.map((stage) => <option key={stage} disabled={!canTransitionStage(state.stage, stage)}>{stage}</option>)}</select></label><label className="field-label">Nota interna <textarea value={state.notes} onChange={(event) => onChange(lead.id, { notes: event.target.value })} placeholder="Registre somente o próximo passo ou observações não sensíveis." rows={3} /></label><small className="field-footnote"><ShieldCheck size={13} /> Salvo neste navegador. Não inclua dados de saúde ou informações sensíveis.</small></section>
     <section className="detail-section"><div className="detail-source-heading"><h3>{lead.origin === 'planilha' ? 'Origem dos dados' : 'Fontes e consulta'}</h3><span>{lead.origin === 'planilha' ? lead.importedAt : lead.lastReviewedAt ?? researchedAt}</span></div><div className="source-list">{lead.origin === 'planilha' && <div className="source-item"><span><strong>Importação local · arquivo não armazenado</strong><small>Campos selecionados pelo usuário; não são uma fonte pública nem foram verificados independentemente.</small></span></div>}{lead.sources.map((source, index) => source.url ? <a className="source-item" href={source.url} target="_blank" rel="noreferrer" key={`${source.url}-${index}`}><span><strong>{source.label}</strong><small>{source.supports}</small></span><ExternalLink size={14} /></a> : <div className="source-item" key={`${source.label}-${index}`}><span><strong>{source.label}</strong><small>{source.supports}</small></span></div>)}{!lead.sources.length && lead.origin !== 'planilha' && <span>Nenhuma fonte externa anexada.</span>}</div><div className="confidence-note"><ShieldCheck size={15} /><span>{lead.confidence}</span></div></section>
     <div className="detail-footer"><ShieldCheck size={15} /> {lead.origin === 'planilha' ? 'Confirme a origem dos contatos e os dados antes de qualquer abordagem.' : 'Dados públicos podem mudar; revalide antes de abordar.'}</div>
   </aside></div>

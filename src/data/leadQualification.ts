@@ -261,11 +261,18 @@ export function getValidationLabel(qualification: LeadQualification) {
   return 'Não verificado'
 }
 
-export function canMarkReadyForContact(qualification: LeadQualification) {
-  return getPublicScore(qualification) >= scoringWeights.minimumPublicScoreToContact && hasRelevantService(qualification) &&
-    qualification.identityStatus === 'confirmed' && qualification.contactStatus === 'confirmed' &&
-    Boolean(qualification.verifiedContactValue.trim()) && isHttpUrl(qualification.verificationSourceUrl.trim()) &&
-    Boolean(qualification.verificationNote.trim())
+export function getContactReadinessSuggestions(qualification: LeadQualification) {
+  const suggestions: string[] = []
+
+  if (!hasRelevantService(qualification)) suggestions.push('documente um sinal de serviço compatível')
+  if (qualification.identityStatus !== 'confirmed') suggestions.push('confirme a identidade do negócio')
+  if (qualification.contactStatus !== 'confirmed' || !qualification.verifiedContactValue.trim()) {
+    suggestions.push('confirme o canal e preencha o contato publicado')
+  }
+  if (!isHttpUrl(qualification.verificationSourceUrl.trim())) suggestions.push('informe uma URL válida da fonte consultada')
+  if (!qualification.verificationNote.trim()) suggestions.push('registre uma nota sobre o que foi conferido')
+
+  return suggestions
 }
 
 export function getInterestTemperature(qualification: LeadQualification) {
