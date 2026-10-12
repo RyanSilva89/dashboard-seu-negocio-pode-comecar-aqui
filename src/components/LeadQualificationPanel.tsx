@@ -22,6 +22,7 @@ import type { Lead } from '../data/leads'
 type Props = {
   lead: Lead
   qualification: LeadQualification
+  contactMade: boolean
   onChange: (updates: Partial<LeadQualification>) => void
   onMarkReady: () => void
 }
@@ -53,7 +54,7 @@ const statusLabels: Record<CheckStatus, string> = {
   'access-restricted': 'Acesso restrito · exige login',
 }
 
-export default function LeadQualificationPanel({ lead, qualification, onChange, onMarkReady }: Props) {
+export default function LeadQualificationPanel({ lead, qualification, contactMade, onChange, onMarkReady }: Props) {
   const score = getProspectingScore(qualification)
   const publicScore = getPublicScore(qualification)
   const confirmationBonus = getClientConfirmationBonus(qualification)
@@ -61,6 +62,7 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
   const validationLabel = getValidationLabel(qualification)
   const ready = canMarkReadyForContact(qualification)
   const accessRestricted = qualification.identityStatus === 'access-restricted' || qualification.contactStatus === 'access-restricted'
+  const showInterestTracking = contactMade || qualification.interestStatus !== 'no-response' || Boolean(qualification.interestEvidence.trim() || qualification.interestDate)
   const temperature = getInterestTemperature(qualification)
   const originalContact = defaultContact(lead)
   const originalSource = defaultSource(lead)
@@ -133,7 +135,7 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
           <span>Fase cliente <strong>{score === null ? '—' : `+${confirmationBonus}/${scoringWeights.maxClientBonus}`}</strong></span>
         </div>
         <ul className="score-breakdown">{scoreBreakdown.map((line) => <li key={line.label}><span title={line.detail}>{line.label}</span><strong>{line.points ? `+${line.points}` : '0'}</strong></li>)}</ul>
-        <p className="score-explanation">Até {scoringWeights.maxPublicScore} pontos vêm da análise pública: {scoringWeights.publicSignalPerService} por serviço com fonte e nota, limitados a {scoringWeights.maxPublicSignalPoints}, além da conferência de identidade, contato, fonte e data. Exemplo sem conversar: 1 sinal público (+{scoringWeights.publicSignalPerService}) + identidade (+{scoringWeights.identityConfirmed}) + contato publicado (+{scoringWeights.contactConfirmed}) + fonte/nota (+{scoringWeights.sourceAndNote}) + data (+{scoringWeights.validationDate}) = {scoringWeights.minimumPublicScoreToContact}. Resposta simples atualiza temperatura e taxa de resposta, mas não soma pontos. Necessidade confirmada acrescenta {scoringWeights.confirmedNeed}; proposta solicitada acrescenta {scoringWeights.requestedProposal}, até {scoringWeights.maxClientBonus}, com evidência e data. A confirmação não substitui nem sobrescreve a evidência pública. Para o primeiro contato, exige-se score público ≥ {scoringWeights.minimumPublicScoreToContact}; bônus pós-conversa não liberam abordagem retroativamente. Score não é probabilidade de compra.</p>
+        <p className="score-explanation">Até {scoringWeights.maxPublicScore} pontos vêm da análise pública: {scoringWeights.publicSignalPerService} por serviço com fonte e nota, limitados a {scoringWeights.maxPublicSignalPoints}, além da conferência de identidade, contato, fonte e data. Exemplo sem conversar: 1 sinal público (+{scoringWeights.publicSignalPerService}) + identidade (+{scoringWeights.identityConfirmed}) + contato publicado (+{scoringWeights.contactConfirmed}) + fonte/nota (+{scoringWeights.sourceAndNote}) = {scoringWeights.minimumPublicScoreToContact}; registrar a data acrescenta mais {scoringWeights.validationDate} pontos. Resposta simples atualiza temperatura e taxa de resposta, mas não soma pontos. Necessidade confirmada acrescenta {scoringWeights.confirmedNeed}; proposta solicitada acrescenta {scoringWeights.requestedProposal}, até {scoringWeights.maxClientBonus}, com evidência e data. A confirmação não substitui nem sobrescreve a evidência pública. Para o primeiro contato, exige-se score público ≥ {scoringWeights.minimumPublicScoreToContact}, identidade e contato confirmados, URL e nota válidas e um serviço compatível; a data da conferência é recomendada e soma pontos, mas não bloqueia a liberação. Bônus pós-conversa não liberam abordagem retroativamente. Score não é probabilidade de compra.</p>
       </div>
 
       <div className="validation-subheading"><strong>1. Conferir identidade e contato</strong><span>Sem mensagem ou ligação: use o perfil/site oficial.</span></div>
@@ -184,29 +186,32 @@ export default function LeadQualificationPanel({ lead, qualification, onChange, 
       <label className="no-fit-control"><input type="checkbox" checked={qualification.noRelevantService} onChange={(event) => setNoFit(event.target.checked)} /><span>Revisei os serviços e nenhum se aplica — score 0</span></label>
       <small className="field-footnote">Marcar “Não se aplica” nos três serviços também resulta em 0; deixe “Ainda não avaliado” enquanto não tiver revisado.</small>
 
-      <div className="validation-subheading"><strong>3. Próximo passo e interesse</strong><span>Temperatura depende de interação, nunca somente da pontuação.</span></div>
+      <div className="validation-subheading"><strong>3. Próximo passo</strong><span>Organize a tarefa sem alterar o score do lead.</span></div>
       <label className="field-label">Próxima ação<input value={qualification.nextAction} onChange={(event) => onChange({ nextAction: event.target.value })} placeholder="Ex.: preparar abordagem sobre o fluxo de orçamento" /></label>
       <small className="field-footnote">A próxima ação ajuda a organizar o trabalho, mas não aumenta o score do lead.</small>
       <label className="field-label">Data da próxima ação<input type="date" value={qualification.nextActionDate} onChange={(event) => onChange({ nextActionDate: event.target.value })} /></label>
-      <label className="field-label">Sinal de interesse registrado
-        <select value={qualification.interestStatus} onChange={(event) => onChange({ interestStatus: event.target.value as InterestStatus })}>
-          <option value="no-response">Frio · ainda sem resposta</option>
-          <option value="responded">Morno · respondeu, necessidade em avaliação</option>
-          <option value="declined">Frio · recusou / sem interesse</option>
-          <option value="need-confirmed">Quente · confirmou necessidade</option>
-          <option value="proposal-requested">Quente · pediu proposta/orçamento</option>
-        </select>
-      </label>
-      <small className="field-footnote">Resposta simples soma 0; necessidade ou proposta só pontua quando vinculada a um serviço e documentada. Recusa não é “morno”; se encerrar, mova para “Sem prioridade”.</small>
-      {qualification.interestStatus !== 'no-response' && <>
-        <label className="field-label">Evidência da interação<textarea value={qualification.interestEvidence} onChange={(event) => onChange({ interestEvidence: event.target.value })} placeholder="Ex.: conversa em que o responsável descreveu o processo atual; não inclua dados sensíveis." rows={2} /></label>
-        <label className="field-label">Data da interação<input type="date" value={qualification.interestDate} onChange={(event) => onChange({ interestDate: event.target.value })} /></label>
-      </>}
-      <div className={`temperature-banner ${temperature.className}`}><CircleAlert size={15} /><span><strong>{temperature.label}</strong><small>Registre apenas o que ocorreu; o score não altera essa temperatura.</small></span></div>
+      {showInterestTracking ? <>
+        <div className="validation-subheading"><strong>4. Resposta e sinal de interesse</strong><span>Opcional · registre somente após o contato.</span></div>
+        <label className="field-label">Sinal de interesse registrado
+          <select value={qualification.interestStatus} onChange={(event) => onChange({ interestStatus: event.target.value as InterestStatus })}>
+            <option value="no-response">Frio · ainda sem resposta</option>
+            <option value="responded">Morno · respondeu, necessidade em avaliação</option>
+            <option value="declined">Frio · recusou / sem interesse</option>
+            <option value="need-confirmed">Quente · confirmou necessidade</option>
+            <option value="proposal-requested">Quente · pediu proposta/orçamento</option>
+          </select>
+        </label>
+        <small className="field-footnote">O registro é opcional e não bloqueia etapas do pipeline. Resposta simples soma 0; necessidade ou proposta só pontua quando vinculada a um serviço e documentada. Recusa não é “morno”; se encerrar, mova para “Sem prioridade”.</small>
+        {qualification.interestStatus !== 'no-response' && <>
+          <label className="field-label">Evidência da interação<textarea value={qualification.interestEvidence} onChange={(event) => onChange({ interestEvidence: event.target.value })} placeholder="Ex.: conversa em que o responsável descreveu o processo atual; não inclua dados sensíveis." rows={2} /></label>
+          <label className="field-label">Data da interação<input type="date" value={qualification.interestDate} onChange={(event) => onChange({ interestDate: event.target.value })} /></label>
+        </>}
+        <div className={`temperature-banner ${temperature.className}`}><CircleAlert size={15} /><span><strong>{temperature.label}</strong><small>Registre apenas o que ocorreu; o score não altera essa temperatura.</small></span></div>
+      </> : <p className="field-footnote">O registro de resposta e interesse ficará disponível após mover o lead para “Contato feito”. Não é obrigatório para liberar ou registrar o primeiro contato.</p>}
 
       <div className="ready-gate">
         <button className="button-primary" type="button" disabled={!ready} onClick={onMarkReady}><BadgeCheck size={15} /> Marcar “Pronto para contato”</button>
-        <p>{ready ? 'Dados e score público atendem aos critérios mínimos. Revise sua mensagem antes de qualquer abordagem.' : accessRestricted ? 'O acesso está restrito. Não considere os dados confirmados nem avance para contato até conseguir revisar uma fonte válida.' : `Para liberar: score público ≥ ${scoringWeights.minimumPublicScoreToContact}, um serviço compatível, identidade e contato confirmados, fonte válida, nota e data da conferência.`}</p>
+        <p>{ready ? 'Dados e score público atendem aos critérios mínimos. A data da conferência é recomendada e adiciona pontos; revise sua mensagem antes de qualquer abordagem.' : accessRestricted ? 'O acesso está restrito. Não considere os dados confirmados nem avance para contato até conseguir revisar uma fonte válida.' : `Para liberar: score público ≥ ${scoringWeights.minimumPublicScoreToContact}, um serviço compatível, identidade e contato confirmados, URL e nota válidas. Registrar a data é recomendado, mas não obrigatório para liberar.`}</p>
       </div>
     </section>
   )

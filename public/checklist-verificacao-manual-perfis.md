@@ -31,9 +31,9 @@ Use uma cópia por negócio. O objetivo é confirmar fatos públicos antes de pr
 ## 5. Decisão no CRM
 
 - [ ] Deixei a ficha em revisão se alguma identidade, contato ou fonte continua sem confirmação.
-- [ ] Registrei as fases separadamente: score público até 80 — 20 por sinal de serviço documentado, limitado a 50 entre os três serviços; identidade conferida +10, contato +10, fonte/nota +5 e data +5 — e confirmação do cliente até 20. Um serviço observável mais os dados completos pode atingir o gate público de 50. Resposta simples vale +0 (atualiza temperatura/taxa de resposta); necessidade confirmada vale +12 e proposta solicitada vale +20, com serviço, evidência e data. O final é a soma até 100, nunca uma probabilidade de compra.
+- [ ] Registrei as fases separadamente: score público até 80 — 20 por sinal de serviço documentado, limitado a 50 entre os três serviços; identidade conferida +10, contato +10, fonte/nota +5 e data +5 — e confirmação do cliente até 20. Um sinal de serviço e identidade, contato, URL e nota conferidos somam 45; a data recomendada acrescenta +5. Resposta simples vale +0 (atualiza temperatura/taxa de resposta); necessidade confirmada vale +12 e proposta solicitada vale +20, com serviço, evidência e data. O final é a soma até 100, nunca uma probabilidade de compra.
 - [ ] Se o negócio recusou, registrei “recusou / sem interesse”, não marquei como morno nem dei bônus; se a prospecção terminou, movi manualmente o lead para “Sem prioridade” para removê-lo do Ranking ativo.
-- [ ] Só avancei para “Pronto para contato” após validar identidade e canal, registrar fonte/nota/data, encontrar um serviço compatível e atingir **score público mínimo de 50** no CRM. Bônus obtido depois da conversa não libera o primeiro contato retroativamente.
+- [ ] Só avancei para “Pronto para contato” após validar identidade e canal, registrar URL e nota da fonte, encontrar um serviço compatível e atingir **score público mínimo de 45** no CRM. Registrar a data da conferência é recomendado e adiciona +5, mas não é obrigatório para liberar. Bônus obtido depois da conversa não libera o primeiro contato retroativamente.
 - [ ] Não tratei o score como probabilidade de compra nem usei o score, sozinho, para classificar o lead como quente.
 
 ### Ficha para copiar e preencher

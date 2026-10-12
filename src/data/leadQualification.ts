@@ -45,7 +45,7 @@ export const scoringWeights = {
   validationDate: 5,
   confirmedNeed: 12,
   requestedProposal: 20,
-  minimumPublicScoreToContact: 50,
+  minimumPublicScoreToContact: 45,
   mediumPotentialThreshold: 50,
   highPriorityThreshold: 70,
   veryHighPriorityThreshold: 85,
@@ -265,7 +265,7 @@ export function canMarkReadyForContact(qualification: LeadQualification) {
   return getPublicScore(qualification) >= scoringWeights.minimumPublicScoreToContact && hasRelevantService(qualification) &&
     qualification.identityStatus === 'confirmed' && qualification.contactStatus === 'confirmed' &&
     Boolean(qualification.verifiedContactValue.trim()) && isHttpUrl(qualification.verificationSourceUrl.trim()) &&
-    Boolean(qualification.verificationNote.trim()) && Boolean(qualification.verificationDate)
+    Boolean(qualification.verificationNote.trim())
 }
 
 export function getInterestTemperature(qualification: LeadQualification) {
