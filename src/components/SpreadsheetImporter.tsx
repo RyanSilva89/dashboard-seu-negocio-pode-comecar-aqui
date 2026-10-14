@@ -250,13 +250,20 @@ export default function SpreadsheetImporter({ existingLeads, onImport }: { exist
       if (extension === 'xlsx') {
         const workbook: Sheet<number>[] = await readXlsxFile(file)
         nextSheets = workbook.map((sheet) => ({ name: sheet.sheet, rows: sheet.data as unknown[][] }))
+      } else if (extension === 'ods') {
+        const XLSX = await import('@e965/xlsx')
+        const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true })
+        nextSheets = workbook.SheetNames.map((name) => ({
+          name,
+          rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '', raw: false }),
+        }))
       } else if (['csv', 'tsv', 'txt'].includes(extension)) {
         const text = (await file.text()).replace(/^\uFEFF/, '')
         const result = Papa.parse<string[]>(text, { header: false, delimiter: extension === 'tsv' ? '\t' : '', skipEmptyLines: 'greedy', dynamicTyping: false })
         warnings = result.errors.length
         nextSheets = [{ name: file.name, rows: result.data as unknown[][] }]
       } else {
-        throw new Error('Formato não suportado. Escolha um arquivo .xlsx, .csv ou .tsv.')
+        throw new Error('Formato não suportado. Escolha um arquivo .ods (LibreOffice), .xlsx, .csv ou .tsv.')
       }
       if (!nextSheets.length) throw new Error('Não encontrei abas de dados nesta planilha.')
       const firstUsableIndex = nextSheets.findIndex((sheet) => {
@@ -267,7 +274,9 @@ export default function SpreadsheetImporter({ existingLeads, onImport }: { exist
       setSheets(nextSheets)
       setActiveSheet(firstUsableIndex)
       setParseWarnings(warnings)
-      setNotice('Arquivo lido apenas nesta sessão. Ele não foi enviado nem salvo.')
+      setNotice(extension === 'ods'
+        ? 'Planilha do LibreOffice convertida localmente para análise. O arquivo não foi enviado nem salvo.'
+        : 'Arquivo lido apenas nesta sessão. Ele não foi enviado nem salvo.')
       const first = recordsFromMatrix(nextSheets[firstUsableIndex].rows)
       setMapping(suggestMapping(first.headers))
     } catch (cause) {
@@ -335,10 +344,10 @@ export default function SpreadsheetImporter({ existingLeads, onImport }: { exist
         <section className="panel import-empty">
           <div className="import-icon"><FileSpreadsheet size={26} /></div>
           <h2>Importe uma lista de prospects</h2>
-          <p>Selecione uma planilha Excel ou CSV. Depois você poderá revisar os campos, separar por cidade e nicho e decidir quais registros entram na sua base.</p>
-          <input ref={inputRef} className="visually-hidden-input" type="file" accept=".xlsx,.csv,.tsv,.txt" onChange={onFileChange} aria-label="Selecionar planilha de prospects" />
+          <p>Selecione uma planilha do LibreOffice, Excel ou CSV. Arquivos ODS são convertidos localmente para a prévia; depois você pode revisar os campos, separar por cidade e nicho e decidir quais registros entram na sua base.</p>
+          <input ref={inputRef} className="visually-hidden-input" type="file" accept=".ods,.xlsx,.csv,.tsv,.txt" onChange={onFileChange} aria-label="Selecionar planilha de prospects" />
           <button className="button-primary" type="button" onClick={() => inputRef.current?.click()} disabled={busy}><Upload size={16} /> {busy ? 'Lendo planilha…' : 'Selecionar planilha'}</button>
-          <small>Formatos: XLSX, CSV ou TSV · até 12 MB e 5.000 linhas por análise · primeira linha com cabeçalhos</small>
+          <small>Formatos: ODS (LibreOffice), XLSX, CSV ou TSV · até 12 MB e 5.000 linhas por análise · primeira linha com cabeçalhos</small>
           {error && <p className="import-error" role="alert">{error}</p>}
           <div className="import-privacy"><ShieldCheck size={15} /> Os leads importados ficam somente no armazenamento local deste navegador; não há sincronização com a nuvem.</div>
         </section>

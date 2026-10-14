@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentType } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -13,6 +13,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   Copy,
+  Download,
   ExternalLink,
   FileText,
   FileSpreadsheet,
@@ -31,6 +32,7 @@ import {
   Sparkles,
   Sun,
   Target,
+  Upload,
   Users,
   WalletCards,
   X,
@@ -53,6 +55,16 @@ type Stage = 'Mapeado' | 'Qualificar' | 'Pronto para contato' | 'Contato feito' 
 type LeadState = { stage: Stage; notes: string; qualification: LeadQualification }
 type LeadStateUpdate = Partial<Omit<LeadState, 'qualification'>> & { qualification?: Partial<LeadQualification> }
 type LocalState = Record<string, LeadState>
+type AppBackup = {
+  format: 'seu-site-pode-comecar-aqui-backup'
+  version: 1
+  exportedAt: string
+  state: LocalState
+  importedLeads: Lead[]
+  cityTargets: string[]
+  nicheTargets: string[]
+  theme: 'light' | 'dark'
+}
 
 const stages: Stage[] = ['Mapeado', 'Qualificar', 'Pronto para contato', 'Contato feito', 'Em conversa', 'Proposta enviada', 'Cliente', 'Sem prioridade']
 const boardStages: Stage[] = [...stages]
@@ -129,13 +141,77 @@ function readImportedLeads(): Lead[] {
     if (!saved) return []
     const parsed: unknown = JSON.parse(saved)
     if (!Array.isArray(parsed)) return []
-    return parsed.filter((value): value is Lead => {
-      if (!value || typeof value !== 'object') return false
-      const lead = value as Partial<Lead>
-      return typeof lead.id === 'string' && typeof lead.name === 'string' && typeof lead.address === 'string' && (lead.origin === 'planilha' || lead.origin === 'manual') && Array.isArray(lead.contacts) && Array.isArray(lead.sources)
-    })
+    return parsed.filter(isImportedLead)
   } catch {
     return []
+  }
+}
+
+function isImportedLead(value: unknown): value is Lead {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const lead = value as Partial<Lead>
+  return typeof lead.id === 'string' && typeof lead.name === 'string' && typeof lead.specialty === 'string'
+    && typeof lead.address === 'string' && Array.isArray(lead.contacts)
+    && lead.contacts.every((contact) => contact && typeof contact.label === 'string' && typeof contact.value === 'string'
+      && ['direto', 'diretório', 'social', 'planilha', 'manual'].includes(contact.type))
+    && (typeof lead.website === 'string' || lead.website === null)
+    && ['Confirmado', 'Não localizado nas fontes consultadas', 'Informado na planilha · não verificado', 'URL informada · não verificada', 'Não informado na planilha'].includes(lead.websiteStatus ?? '')
+    && (lead.city === undefined || typeof lead.city === 'string')
+    && (lead.niche === undefined || typeof lead.niche === 'string')
+    && (lead.instagram === undefined || typeof lead.instagram === 'string')
+    && typeof lead.services === 'string' && typeof lead.scheduling === 'string'
+    && Array.isArray(lead.evidence) && lead.evidence.every((item) => typeof item === 'string')
+    && typeof lead.offer === 'string' && typeof lead.priority === 'string' && typeof lead.priorityReason === 'string'
+    && typeof lead.confidence === 'string' && Array.isArray(lead.sources)
+    && lead.sources.every((source) => source && typeof source.label === 'string' && typeof source.supports === 'string'
+      && (source.url === undefined || typeof source.url === 'string'))
+    && (lead.origin === 'planilha' || lead.origin === 'manual')
+    && (lead.importedAt === undefined || typeof lead.importedAt === 'string')
+    && (lead.lastReviewedAt === undefined || typeof lead.lastReviewedAt === 'string')
+}
+
+function parseAppBackup(value: unknown): AppBackup {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('O arquivo não contém um backup válido.')
+  const backup = value as Partial<AppBackup>
+  if (backup.format !== 'seu-site-pode-comecar-aqui-backup' || backup.version !== 1) {
+    throw new Error('Formato ou versão de backup não reconhecidos.')
+  }
+  if (typeof backup.exportedAt !== 'string' || !Array.isArray(backup.importedLeads)
+    || !backup.importedLeads.every(isImportedLead)
+    || !Array.isArray(backup.cityTargets) || !backup.cityTargets.every((target) => typeof target === 'string')
+    || !Array.isArray(backup.nicheTargets) || !backup.nicheTargets.every((target) => typeof target === 'string')
+    || (backup.theme !== 'light' && backup.theme !== 'dark')
+    || !backup.state || typeof backup.state !== 'object' || Array.isArray(backup.state)) {
+    throw new Error('O backup está incompleto ou contém dados inválidos.')
+  }
+
+  const restoredState: LocalState = { ...initialState }
+  for (const [leadId, value] of Object.entries(backup.state)) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('O backup contém um estado de lead inválido.')
+    }
+    const stored = value as Partial<LeadState>
+    if (typeof stored.stage !== 'string' || !stages.includes(stored.stage as Stage)
+      || typeof stored.notes !== 'string'
+      || !stored.qualification || typeof stored.qualification !== 'object' || Array.isArray(stored.qualification)) {
+      throw new Error('O backup contém uma qualificação de lead inválida.')
+    }
+    restoredState[leadId] = {
+      stage: stored.stage as Stage,
+      notes: stored.notes,
+      qualification: normalizeQualification(stored.qualification),
+    }
+  }
+
+  return {
+    format: backup.format,
+    version: backup.version,
+    exportedAt: backup.exportedAt,
+    state: restoredState,
+    importedLeads: backup.importedLeads,
+    cityTargets: uniqueTargets(backup.cityTargets),
+    nicheTargets: uniqueTargets(backup.nicheTargets),
+    theme: backup.theme,
   }
 }
 
@@ -174,6 +250,7 @@ function App() {
     }
   })
   const mainAreaRef = useRef<HTMLDivElement>(null)
+  const backupFileRef = useRef<HTMLInputElement>(null)
   useLayoutEffect(() => {
     mainAreaRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [page])
@@ -354,6 +431,78 @@ function App() {
     }
   }
 
+  function exportBackup() {
+    const backup: AppBackup = {
+      format: 'seu-site-pode-comecar-aqui-backup',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      state,
+      importedLeads,
+      cityTargets,
+      nicheTargets,
+      theme,
+    }
+    const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `backup-seu-site-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setToast('Backup baixado. Guarde o arquivo em um local seguro.')
+  }
+
+  async function restoreBackup(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    if (!file) return
+
+    try {
+      const backup = parseAppBackup(JSON.parse(await file.text()) as unknown)
+      if (!window.confirm('Restaurar este backup vai substituir os leads importados, etapas, anotações, mercados e tema atuais neste navegador. Deseja continuar?')) return
+
+      const updates: [string, string][] = [
+        [appStorageKey, JSON.stringify(backup.state)],
+        [importedLeadsStorageKey, JSON.stringify(backup.importedLeads)],
+        [cityTargetsStorageKey, JSON.stringify(backup.cityTargets)],
+        [nicheTargetsStorageKey, JSON.stringify(backup.nicheTargets)],
+        ['seu-site-theme', backup.theme],
+      ]
+      const previousValues = new Map<string, string | null>()
+      try {
+        updates.forEach(([key, value]) => {
+          previousValues.set(key, localStorage.getItem(key))
+          localStorage.setItem(key, value)
+        })
+      } catch {
+        let rollbackFailed = false
+        for (const [key, previousValue] of previousValues) {
+          try {
+            if (previousValue === null) localStorage.removeItem(key)
+            else localStorage.setItem(key, previousValue)
+          } catch {
+            rollbackFailed = true
+          }
+        }
+        setToast(rollbackFailed
+          ? 'Falha ao restaurar e ao reverter alguns dados. Recarregue o app e confira o conteúdo.'
+          : 'Não foi possível salvar o backup neste navegador. Verifique as permissões e o espaço disponível.')
+        return
+      }
+
+      setState(backup.state)
+      setImportedLeads(backup.importedLeads)
+      setCityTargets(backup.cityTargets)
+      setNicheTargets(backup.nicheTargets)
+      setTheme(backup.theme)
+      setSelectedLead(null)
+      setToast('Backup restaurado com sucesso neste navegador.')
+    } catch (error) {
+      setToast(error instanceof Error ? `Não foi possível restaurar o backup: ${error.message}` : 'Não foi possível ler o arquivo de backup.')
+    } finally {
+      input.value = ''
+    }
+  }
+
   return (
     <div className="app-shell" data-theme={theme}>
       <button className={`mobile-scrim ${drawerOpen ? 'visible' : ''}`} aria-label="Fechar menu" onClick={() => setDrawerOpen(false)} />
@@ -380,7 +529,12 @@ function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="local-note"><ShieldCheck size={16} /><span>Leads e ajustes salvos neste navegador</span></div>
+          <div className="local-note"><ShieldCheck size={16} /><span>Dados locais · exporte um backup para manter uma cópia</span></div>
+          <div className="backup-actions">
+            <button type="button" onClick={exportBackup}><Download size={14} />Exportar backup</button>
+            <button type="button" onClick={() => backupFileRef.current?.click()}><Upload size={14} />Restaurar backup</button>
+            <input ref={backupFileRef} className="visually-hidden-input" type="file" accept="application/json,.json" aria-label="Selecionar arquivo de backup" onChange={restoreBackup} />
+          </div>
           <div className="profile-row"><div className="profile-avatar">SC</div><div><strong>Prospecção digital</strong><small>Dados locais · este navegador</small></div><MoreHorizontal size={18} className="profile-more" /></div>
         </div>
       </aside>
@@ -438,6 +592,10 @@ function App() {
 function DashboardPage({ leads: rows, stageCount, siteCount, onNavigate, onOpenLead, state }: { leads: Lead[]; stageCount: (stage: Stage) => number; siteCount: number; onNavigate: (page: PageKey) => void; onOpenLead: (lead: Lead) => void; state: LocalState }) {
   const ranked = [...rows].sort((a, b) => priorityValue(a.priority) - priorityValue(b.priority)).slice(0, 4)
   const pipeline = boardStages.map((stage) => ({ stage, value: stageCount(stage) }))
+  const hypothesisCount = rows.reduce((total, lead) => {
+    const qualification = state[lead.id]?.qualification ?? createDefaultQualification()
+    return total + Object.values(qualification.opportunities).filter((opportunity) => opportunity.status === 'public-signal').length
+  }, 0)
   return (
     <>
       <div className="welcome-banner">
@@ -450,7 +608,7 @@ function DashboardPage({ leads: rows, stageCount, siteCount, onNavigate, onOpenL
       <div className="metric-grid">
         <MetricCard label="Leads na base" value={String(rows.length)} hint="Pesquisados + importados localmente" icon={Users} tone="blue" />
         <MetricCard label="Sites confirmados" value={String(siteCount)} hint="URLs de planilha não contam como verificadas" icon={Globe} tone="violet" />
-        <MetricCard label="Hipóteses de serviço" value={String(rows.length)} hint="Ainda sem validação comercial" icon={Sparkles} tone="amber" />
+        <MetricCard label="Hipóteses de serviço" value={String(hypothesisCount)} hint={hypothesisCount ? 'Sinais registrados nas fichas de leads' : 'Nenhuma hipótese registrada ainda'} icon={Sparkles} tone="amber" />
         <MetricCard label="Conversas confirmadas" value={String(stageCount('Em conversa') + stageCount('Proposta enviada') + stageCount('Cliente'))} hint="Atualize manualmente no CRM" icon={MessageSquareText} tone="green" />
       </div>
 

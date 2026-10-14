@@ -47,8 +47,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .soon-badge { flex: 0 0 auto; padding: 4px 8px; border-radius: 8px; color: #c68733; background: #fff4e3; font-size: 9px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; white-space: nowrap; }
 .soon-badge.larger { align-self: flex-start; padding: 6px 10px; font-size: 10px; }
 .sidebar-bottom { padding: 10px 3px 0; }
-.local-note { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; padding: 10px 11px; border: 1px solid #e1e5ec; background: rgba(255,255,255,.53); border-radius: 10px; color: #778193; font-size: 10px; line-height: 1.35; }
+.local-note { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 10px 11px; border: 1px solid #e1e5ec; background: rgba(255,255,255,.53); border-radius: 10px; color: #778193; font-size: 10px; line-height: 1.35; }
 .local-note svg { flex: 0 0 auto; color: #56a486; }
+.backup-actions { display: grid; gap: 6px; margin-bottom: 10px; }
+.backup-actions button { min-height: 33px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #dfe4ed; border-radius: 9px; color: #657186; background: rgba(255,255,255,.55); text-align: left; font-size: 10px; font-weight: 650; }
+.backup-actions button:hover { border-color: #b8ccef; color: #3478ed; background: white; }
+.backup-actions button svg { color: #5483c9; }
 .profile-row { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 3px 5px; border-top: 1px solid #dfe3eb; }
 .profile-avatar, .topbar-avatar { flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: #3862a5; background: #dae8ff; font-size: 11px; font-weight: 800; }
 .profile-row div:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
@@ -1110,6 +1114,8 @@ html[data-theme='dark'] .profile-row strong { color: #edf3fb; }
 html[data-theme='dark'] .side-nav .nav-item { color: #bac6d6; }
 html[data-theme='dark'] .side-nav .nav-item:hover { color: #fff; background: #263449; }
 html[data-theme='dark'] .nav-count { color: #c8dcff; background: #263c5c; }
+html[data-theme='dark'] .backup-actions button { border-color: var(--line); color: #bac6d6; background: #1b2635; }
+html[data-theme='dark'] .backup-actions button:hover { border-color: #5276aa; color: #dce9ff; background: #263449; }
 html[data-theme='dark'] .local-note,
 html[data-theme='dark'] .data-note,
 html[data-theme='dark'] .crm-privacy,
