@@ -1,15 +1,14 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { ArrowRight, FileSpreadsheet, ShieldCheck, Upload, X } from 'lucide-react'
 import Papa from 'papaparse'
-import readXlsxFile, { type Sheet } from 'read-excel-file/browser'
 import type { Lead } from '../data/leads'
 import { getLeadCity, getLeadNiche, normalizeTarget } from '../data/targets'
 
-type ImportField = 'name' | 'city' | 'state' | 'niche' | 'neighborhood' | 'address' | 'phone' | 'email' | 'website' | 'instagram' | 'profile' | 'services' | 'reviews' | 'notes'
+type ImportField = 'name' | 'city' | 'state' | 'niche' | 'neighborhood' | 'address' | 'phone' | 'whatsapp' | 'email' | 'website' | 'instagram' | 'profile' | 'googleLink' | 'maps' | 'services' | 'reviews' | 'onlineStatus' | 'notes'
 type FieldMapping = Record<ImportField, string>
 type RowRecord = Record<string, string>
 type SheetRows = { name: string; rows: unknown[][] }
-type Candidate = { line: number; lead: Lead | null; city: string; niche: string; neighborhood: string; profile: string; reviews: string; missingName: boolean; incomplete: boolean; duplicate: boolean }
+type Candidate = { line: number; lead: Lead | null; city: string; niche: string; neighborhood: string; profile: string; googleLink: string; maps: string; reviews: string; onlineStatus: string; missingName: boolean; incomplete: boolean; duplicate: boolean }
 
 const fieldLabels: Record<ImportField, string> = {
   name: 'Nome do negócio (obrigatório)',
@@ -19,16 +18,20 @@ const fieldLabels: Record<ImportField, string> = {
   neighborhood: 'Bairro',
   address: 'Endereço completo',
   phone: 'Telefone / WhatsApp',
+  whatsapp: 'Link do WhatsApp',
   email: 'E-mail',
   website: 'Site / URL',
   instagram: 'Instagram',
   profile: 'Link do perfil social',
+  googleLink: 'Link encontrado no Google',
+  maps: 'Google Maps',
   services: 'Serviços / especialidade',
   reviews: 'Avaliações / nota',
+  onlineStatus: 'Situação online',
   notes: 'Observações',
 }
 
-const fieldOrder: ImportField[] = ['name', 'city', 'state', 'niche', 'neighborhood', 'address', 'phone', 'email', 'website', 'instagram', 'profile', 'services', 'reviews', 'notes']
+const fieldOrder: ImportField[] = ['name', 'city', 'state', 'niche', 'neighborhood', 'address', 'phone', 'whatsapp', 'email', 'website', 'instagram', 'profile', 'googleLink', 'maps', 'services', 'reviews', 'onlineStatus', 'notes']
 const aliases: Record<ImportField, string[]> = {
   name: ['nome', 'empresa', 'negocio', 'business', 'name', 'estabelecimento', 'clinica', 'lead'],
   city: ['cidade', 'city', 'municipio', 'localidade'],
@@ -36,13 +39,17 @@ const aliases: Record<ImportField, string[]> = {
   niche: ['nicho', 'segmento', 'categoria', 'ramo', 'setor', 'especialidade', 'specialty'],
   neighborhood: ['bairro', 'neighborhood', 'district'],
   address: ['endereco', 'address', 'localizacao', 'logradouro', 'rua'],
-  phone: ['telefone', 'celular', 'whatsapp', 'phone', 'fone', 'tel'],
+  phone: ['telefone', 'celular', 'phone', 'fone', 'tel'],
+  whatsapp: ['whatsapp', 'wa.me'],
   email: ['email', 'mail'],
   website: ['site', 'website', 'url', 'dominio', 'pagina web'],
   instagram: ['instagram'],
   profile: ['link do perfil', 'url do perfil', 'perfil social', 'rede social', 'social profile', 'profile link', 'perfil', 'profile', 'facebook', 'tiktok', 'linkedin', 'youtube', 'twitter', 'threads'],
+  googleLink: ['link atual no google', 'perfil da empresa no google', 'perfil google', 'google business'],
+  maps: ['google maps', 'maps'],
   services: ['servico', 'servicos', 'atividade', 'description', 'descricao'],
   reviews: ['avaliacao', 'avaliacoes', 'review', 'reviews', 'classificacao', 'rating'],
+  onlineStatus: ['situacao online', 'status online', 'presenca online'],
   notes: ['observacao', 'observacoes', 'anotacao', 'anotacoes', 'nota', 'notas', 'comentario'],
 }
 
@@ -55,6 +62,16 @@ function cellText(value: unknown) {
   if (value === null || value === undefined) return ''
   if (value instanceof Date) return value.toLocaleDateString('pt-BR')
   return String(value).replace(/^\uFEFF/, '').trim()
+}
+
+function matrixFromWorkbookSheet(XLSX: typeof import('@e965/xlsx'), sheet: import('@e965/xlsx').WorkSheet) {
+  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false })
+  const start = sheet['!ref'] ? XLSX.utils.decode_range(sheet['!ref']).s : { r: 0, c: 0 }
+  return rows.map((row, rowIndex) => row.map((value, columnIndex) => {
+    const cell = sheet[XLSX.utils.encode_cell({ r: start.r + rowIndex, c: start.c + columnIndex })]
+    const target = cell && typeof cell === 'object' && 'l' in cell ? cell.l?.Target : undefined
+    return typeof target === 'string' && /^https?:\/\//i.test(target) ? target : value
+  }))
 }
 
 function uniqueHeaders(values: unknown[]) {
@@ -146,8 +163,8 @@ function buildLead(row: RowRecord, mapping: FieldMapping, line: number, defaultC
   const rawCity = columnValue(row, mapping, 'city')
   const rawState = columnValue(row, mapping, 'state')
   const state = rawState ? (rawState.length === 2 ? rawState.toUpperCase() : rawState) : ''
-  const cityName = rawCity || defaultCity
-  const city = cityName ? `${cityName}${state ? `, ${state}` : ''}` : cityFromAddress(rawAddress)
+  const cityName = rawCity || cityFromAddress(rawAddress) || defaultCity
+  const city = cityName && rawCity ? `${cityName}${state ? `, ${state}` : ''}` : cityName
   const addressParts = [rawAddress, neighborhood ? `Bairro: ${neighborhood}` : ''].filter(Boolean)
   const address = addressParts.join(' · ') || (city ? city : 'Localização não informada na planilha')
   const niche = columnValue(row, mapping, 'niche') || 'Não informado'
@@ -156,19 +173,26 @@ function buildLead(row: RowRecord, mapping: FieldMapping, line: number, defaultC
   const instagram = safeInstagram(columnValue(row, mapping, 'instagram'))
   const rawProfile = columnValue(row, mapping, 'profile')
   const profile = safeUrl(rawProfile)
+  const googleLink = safeUrl(columnValue(row, mapping, 'googleLink'))
+  const maps = safeUrl(columnValue(row, mapping, 'maps'))
   const phone = columnValue(row, mapping, 'phone')
+  const whatsapp = columnValue(row, mapping, 'whatsapp')
+  const whatsappUrl = safeUrl(whatsapp)
   const email = columnValue(row, mapping, 'email')
   const services = columnValue(row, mapping, 'services') || 'Serviços não informados na planilha.'
   const reviews = columnValue(row, mapping, 'reviews')
+  const onlineStatus = columnValue(row, mapping, 'onlineStatus')
   const notes = columnValue(row, mapping, 'notes')
   const importedAt = new Date().toLocaleDateString('pt-BR')
   const suffix = globalThis.crypto?.randomUUID?.().slice(0, 8) ?? `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
   const evidence = [`Dados fornecidos pelo usuário via planilha em ${importedAt}; não verificados de forma independente.`, 'O arquivo original não é guardado no dashboard.']
   if (reviews) evidence.push(`Avaliações / nota importadas: ${reviews}`)
+  if (onlineStatus) evidence.push(`Situação online informada na planilha: ${onlineStatus}`)
   if (notes) evidence.push(`Observação importada: ${notes}`)
   if (rawWebsite && !website) evidence.push('O valor da coluna de site não foi reconhecido como URL segura e não foi transformado em link.')
   const contacts: Lead['contacts'] = []
   if (phone) contacts.push({ label: 'Telefone / WhatsApp', value: phone, type: 'planilha' })
+  if (whatsapp) contacts.push({ label: 'WhatsApp informado', value: whatsappUrl || whatsapp, type: 'planilha' })
   if (email) contacts.push({ label: 'E-mail', value: email, type: 'planilha' })
   if (instagram) contacts.push({ label: 'Instagram', value: instagram, type: 'planilha' })
   if (profile) {
@@ -195,9 +219,12 @@ function buildLead(row: RowRecord, mapping: FieldMapping, line: number, defaultC
     priority: 'Baixa provisória',
     priorityReason: 'Registro importado; exige verificação e qualificação manual antes de ser priorizado.',
     confidence: 'Dados fornecidos pelo usuário por planilha; nomes, contatos, URLs e categorias não foram verificados de forma independente.',
-    sources: profile
-      ? [{ label: `Perfil social · ${new URL(profile).hostname.replace(/^www\./i, '')}`, url: profile, supports: 'Link informado na planilha; perfil não verificado.' }]
-      : [],
+    sources: [
+      ...(profile ? [{ label: `Perfil social · ${new URL(profile).hostname.replace(/^www\./i, '')}`, url: profile, supports: 'Link informado na planilha; perfil não verificado.' }] : []),
+      ...(googleLink ? [{ label: 'Link encontrado no Google', url: googleLink, supports: 'Link informado na planilha; destino não verificado.' }] : []),
+      ...(maps ? [{ label: 'Localização no Google Maps', url: maps, supports: 'Link informado na planilha; localização não verificada.' }] : []),
+      ...(whatsappUrl ? [{ label: 'WhatsApp informado', url: whatsappUrl, supports: 'Link informado na planilha; contato não verificado.' }] : []),
+    ],
     origin: 'planilha',
     importedAt,
   }
@@ -225,7 +252,7 @@ function createCandidates(rows: RowRecord[], mapping: FieldMapping, existingLead
   const known = [...existingLeads]
   return rows.map((row, index) => {
     const lead = buildLead(row, mapping, index + 2, defaultCity)
-    if (!lead) return { line: index + 2, lead: null, city: 'Não informado', niche: 'Não informado', neighborhood: '', profile: '', reviews: '', missingName: true, incomplete: true, duplicate: false }
+    if (!lead) return { line: index + 2, lead: null, city: 'Não informado', niche: 'Não informado', neighborhood: '', profile: '', googleLink: '', maps: '', reviews: '', onlineStatus: '', missingName: true, incomplete: true, duplicate: false }
     const city = getLeadCity(lead)
     const niche = getLeadNiche(lead)
     const duplicate = known.some((other) => isDuplicate(lead, other))
@@ -237,7 +264,10 @@ function createCandidates(rows: RowRecord[], mapping: FieldMapping, existingLead
       niche,
       neighborhood: columnValue(row, mapping, 'neighborhood'),
       profile: safeUrl(columnValue(row, mapping, 'profile')),
+      googleLink: safeUrl(columnValue(row, mapping, 'googleLink')),
+      maps: safeUrl(columnValue(row, mapping, 'maps')),
       reviews: columnValue(row, mapping, 'reviews'),
+      onlineStatus: columnValue(row, mapping, 'onlineStatus'),
       missingName: false,
       incomplete: city === 'Não informado' || niche === 'Não informado',
       duplicate,
@@ -289,15 +319,12 @@ export default function SpreadsheetImporter({ existingLeads, onImport }: { exist
       const extension = file.name.split('.').pop()?.toLocaleLowerCase('pt-BR') ?? ''
       let nextSheets: SheetRows[]
       let warnings = 0
-      if (extension === 'xlsx') {
-        const workbook: Sheet<number>[] = await readXlsxFile(file)
-        nextSheets = workbook.map((sheet) => ({ name: sheet.sheet, rows: sheet.data as unknown[][] }))
-      } else if (extension === 'ods') {
+      if (extension === 'xlsx' || extension === 'ods') {
         const XLSX = await import('@e965/xlsx')
         const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true })
         nextSheets = workbook.SheetNames.map((name) => ({
           name,
-          rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '', raw: false }),
+          rows: matrixFromWorkbookSheet(XLSX, workbook.Sheets[name]),
         }))
       } else if (['csv', 'tsv', 'txt'].includes(extension)) {
         const text = (await file.text()).replace(/^\uFEFF/, '')
@@ -319,7 +346,9 @@ export default function SpreadsheetImporter({ existingLeads, onImport }: { exist
       setDefaultCity(inferCityFromContext(file.name, nextSheets[firstUsableIndex].name))
       setNotice(extension === 'ods'
         ? 'Planilha do LibreOffice convertida localmente para análise. O arquivo não foi enviado nem salvo.'
-        : 'Arquivo lido apenas nesta sessão. Ele não foi enviado nem salvo.')
+        : extension === 'xlsx'
+          ? 'Planilha lida localmente; links de hiperlink nas células também são reconhecidos. O arquivo não foi enviado nem salvo.'
+          : 'Arquivo lido apenas nesta sessão. Ele não foi enviado nem salvo.')
       const first = recordsFromMatrix(nextSheets[firstUsableIndex].rows)
       setMapping(suggestMapping(first.headers))
     } catch (cause) {
@@ -412,8 +441,8 @@ export default function SpreadsheetImporter({ existingLeads, onImport }: { exist
               </div>
               <div className="import-preview-scroll">
                 <table className="import-preview-table" id="spreadsheet-preview-table">
-                  <thead><tr><th>Linha</th><th>Negócio</th><th>Cidade</th><th>Nicho</th><th>Bairro</th><th>Perfil social</th><th>Avaliações</th><th>Resultado</th></tr></thead>
-                  <tbody>{visibleCandidates.map((candidate) => <tr key={candidate.line}><td>{candidate.line}</td><td>{candidate.lead?.name || 'Nome ausente'}</td><td>{candidate.city}</td><td>{candidate.niche}</td><td>{candidate.neighborhood || '—'}</td><td>{candidate.profile || candidate.lead?.instagram || '—'}</td><td>{candidate.reviews || '—'}</td><td><span className={`import-row-status ${candidate.duplicate || candidate.missingName ? 'warning' : candidate.incomplete ? 'incomplete' : 'ready'}`}>{candidate.duplicate ? 'Duplicata · ignorar' : candidate.missingName ? 'Sem nome · ignorar' : candidate.incomplete ? 'Importável · incompleto' : 'Novo lead'}</span></td></tr>)}</tbody>
+                  <thead><tr><th>Linha</th><th>Negócio</th><th>Cidade</th><th>Nicho</th><th>Bairro</th><th>Perfil social</th><th>Link Google</th><th>Maps</th><th>Avaliações</th><th>Situação online</th><th>Resultado</th></tr></thead>
+                  <tbody>{visibleCandidates.map((candidate) => <tr key={candidate.line}><td>{candidate.line}</td><td>{candidate.lead?.name || 'Nome ausente'}</td><td>{candidate.city}</td><td>{candidate.niche}</td><td>{candidate.neighborhood || '—'}</td><td>{candidate.profile || candidate.lead?.instagram || '—'}</td><td>{candidate.googleLink || '—'}</td><td>{candidate.maps || '—'}</td><td>{candidate.reviews || '—'}</td><td>{candidate.onlineStatus || '—'}</td><td><span className={`import-row-status ${candidate.duplicate || candidate.missingName ? 'warning' : candidate.incomplete ? 'incomplete' : 'ready'}`}>{candidate.duplicate ? 'Duplicata · ignorar' : candidate.missingName ? 'Sem nome · ignorar' : candidate.incomplete ? 'Importável · incompleto' : 'Novo lead'}</span></td></tr>)}</tbody>
                 </table>
               </div>
               {pageCount > 1 && <nav className="import-pagination" aria-label="Paginação da prévia">
