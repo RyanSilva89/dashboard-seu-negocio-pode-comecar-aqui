@@ -56,7 +56,7 @@ export function getLeadNiche(lead: Lead) {
 }
 
 export function leadMatchesCity(lead: Lead, city: string) {
-  const cityName = (value: string) => normalizeTarget(value).replace(/,?\s*sp$/, '').trim()
+  const cityName = (value: string) => normalizeTarget(value).replace(/(?:,\s*|\s+)[a-z]{2}$/, '').trim()
   return cityName(getLeadCity(lead)) === cityName(city)
 }
 
