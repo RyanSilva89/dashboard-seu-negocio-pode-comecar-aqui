@@ -84,7 +84,91 @@ function createDefaultLeadState(): LeadState {
   return { stage: 'Mapeado', notes: '', qualification: createDefaultQualification() }
 }
 
-const initialState: LocalState = Object.fromEntries(leads.map((lead) => [lead.id, createDefaultLeadState()]))
+const uberabaVerifiedChecks: Record<string, Partial<LeadQualification>> = {
+  'clinica-vidativa-fisioterapia-uberaba': {
+    identityStatus: 'confirmed',
+    contactStatus: 'confirmed',
+    verifiedContactType: 'Telefone',
+    verifiedContactValue: '(34) 3314-7273',
+    verificationSourceUrl: 'https://www.instagram.com/clinicavidativa_/',
+    verificationNote: 'Perfil Instagram aberto sem login em 16/10/2026: dois telefones (34)3314-7577 e (34)3314-7273, serviços (fisioterapia, RPG, Pilates, psicóloga, acupuntura) e "Há 23 anos cuidando com amor". Waze confirma endereço Av. Santa Beatriz da Silva, 641, Santa Maria, Uberaba–MG, CEP 38020-380 e o (34)3314-7273. Apontador também lista o mesmo endereço. Nenhum site localizado.',
+    verificationDate: '2026-10-16',
+    nextAction: 'Perguntar ao responsável se existe alguma dificuldade operacional ou comercial a resolver.',
+    opportunities: {
+      site: { status: 'public-signal', evidenceNote: 'Nenhum site próprio localizado nas fontes consultadas (Instagram, Waze, Apontador, Google).', evidenceSource: 'https://www.instagram.com/clinicavidativa_/', clientConfirmed: false, clientConfirmationNote: '' },
+      automation: { status: 'not-assessed', evidenceNote: '', evidenceSource: '', clientConfirmed: false, clientConfirmationNote: '' },
+      instagram: { status: 'not-assessed', evidenceNote: '', evidenceSource: '', clientConfirmed: false, clientConfirmationNote: '' },
+    },
+  },
+  'restaurante-sertao-mineiro-uberaba': {
+    identityStatus: 'confirmed',
+    contactStatus: 'confirmed',
+    verifiedContactType: 'Telefone',
+    verifiedContactValue: '+55 34 99972-6619',
+    verificationSourceUrl: 'https://www.sertaomineiro.com.br/',
+    verificationNote: 'Site próprio confirmado em 16/10/2026: nome, endereço MG-190 km 1,5, telefone +55 34 99972-6619, e-mail restaurantesertaomineiro@gmail.com e Instagram @restaurante.sertaomineiro publicados. Funciona sáb/dom/feriados, almoço 12h–15h. Cobrança por quilo não confirmada.',
+    verificationDate: '2026-10-16',
+    nextAction: 'Perguntar ao responsável se existe alguma dificuldade operacional ou comercial a resolver.',
+    opportunities: {
+      site: { status: 'not-fit', evidenceNote: 'Já tem site próprio com endereço, horário, e-mail e telefone de reservas.', evidenceSource: 'https://www.sertaomineiro.com.br/', clientConfirmed: false, clientConfirmationNote: '' },
+      automation: { status: 'public-signal', evidenceNote: 'Reservas e dúvidas feitas apenas por telefone ou e-mail; não há sistema de reservas online no site.', evidenceSource: 'https://www.sertaomineiro.com.br/', clientConfirmed: false, clientConfirmationNote: '' },
+      instagram: { status: 'not-assessed', evidenceNote: '', evidenceSource: '', clientConfirmed: false, clientConfirmationNote: '' },
+    },
+  },
+  'leticia-costa-estetica-avancada-uberaba': {
+    identityStatus: 'confirmed',
+    contactStatus: 'confirmed',
+    verifiedContactType: 'Formulário do site',
+    verifiedContactValue: 'leticiacosta.com.br',
+    verificationSourceUrl: 'https://www.leticiacosta.com.br/',
+    verificationNote: 'Site e Instagram @leticiacosta__ ("Farmacêutica Esteta", Uberaba–MG, link para leticiacosta.com.br) confirmados em 16/10/2026. Formulário funciona e redireciona ao WhatsApp após envio. Botão de WhatsApp do site aponta para "#" (sem número) — observado nesta data. Telefone +55 34 98836-1231 só aparece no Google; não confirmado no texto do site.',
+    verificationDate: '2026-10-16',
+    nextAction: 'Perguntar ao responsável se existe alguma dificuldade operacional ou comercial a resolver.',
+    opportunities: {
+      site: { status: 'public-signal', evidenceNote: 'Botão de WhatsApp do site aponta para "#" (placeholder sem número), observado em 16/10/2026. Formulário existe mas redireciona a WhatsApp após envio, sem canal direto publicado.', evidenceSource: 'https://www.leticiacosta.com.br/', clientConfirmed: false, clientConfirmationNote: '' },
+      automation: { status: 'not-assessed', evidenceNote: '', evidenceSource: '', clientConfirmed: false, clientConfirmationNote: '' },
+      instagram: { status: 'not-assessed', evidenceNote: '', evidenceSource: '', clientConfirmed: false, clientConfirmationNote: '' },
+    },
+  },
+  'fisio-prime-instituto-uberaba': {
+    identityStatus: 'confirmed',
+    contactStatus: 'confirmed',
+    verifiedContactType: 'WhatsApp',
+    verifiedContactValue: '+55 34 99654-7304',
+    verificationSourceUrl: 'https://fisioprimeinstituto.com.br/fale-conosco/',
+    verificationNote: 'Página Fale Conosco confirmada em 16/10/2026: endereço Rua Dr. José Ferreira, 230 Uberaba, telefone (34)3325-3525, WhatsApp +55 34 99654-7304 e e-mail contato@fisioprime.com.br publicados. Formulário "Marque seu atendimento" funciona como pedido com faixa horária (7–10h, 11–14h, 15–17h ou 18–21h); aviso "Entraremos em contato em breve!" — sem confirmação instantânea.',
+    verificationDate: '2026-10-16',
+    nextAction: 'Perguntar ao responsável se existe alguma dificuldade operacional ou comercial a resolver.',
+    opportunities: {
+      site: { status: 'not-fit', evidenceNote: 'Já tem site próprio com formulário de marcação de atendimento.', evidenceSource: 'https://fisioprimeinstituto.com.br/', clientConfirmed: false, clientConfirmationNote: '' },
+      automation: { status: 'public-signal', evidenceNote: 'Formulário de marcação exige retorno manual ("Entraremos em contato em breve!"); sem confirmação instantânea nem integração com calendário real.', evidenceSource: 'https://fisioprimeinstituto.com.br/marque-seu-atendimento/', clientConfirmed: false, clientConfirmationNote: '' },
+      instagram: { status: 'not-assessed', evidenceNote: '', evidenceSource: '', clientConfirmed: false, clientConfirmationNote: '' },
+    },
+  },
+  'clinica-nunes-estetica-avancada': {
+    identityStatus: 'confirmed',
+    contactStatus: 'confirmed',
+    verifiedContactType: 'WhatsApp',
+    verifiedContactValue: '+55 34 99100-7363',
+    verificationSourceUrl: 'https://www.instagram.com/clinicanunes.esteticaavancada/',
+    verificationNote: 'Perfil Instagram aberto sem login em 16/10/2026: nome "Clínica Nunes I Harmonização Facial", Uberaba/MG, serviços (harmonização facial, perfiloplastia) e WhatsApp wa.me/5534991007363. Endereço de rua não confirmado.',
+    verificationDate: '2026-10-16',
+    nextAction: 'Perguntar ao responsável se existe alguma dificuldade operacional ou comercial a resolver.',
+    opportunities: {
+      site: { status: 'public-signal', evidenceNote: 'Nenhum site próprio localizado; presença digital concentrada no Instagram com link para WhatsApp.', evidenceSource: 'https://www.instagram.com/clinicanunes.esteticaavancada/', clientConfirmed: false, clientConfirmationNote: '' },
+      automation: { status: 'not-assessed', evidenceNote: '', evidenceSource: '', clientConfirmed: false, clientConfirmationNote: '' },
+      instagram: { status: 'not-assessed', evidenceNote: '', evidenceSource: '', clientConfirmed: false, clientConfirmationNote: '' },
+    },
+  },
+}
+
+const initialState: LocalState = Object.fromEntries(leads.map((lead) => {
+  const initialLeadState = createDefaultLeadState()
+  const verifiedCheck = uberabaVerifiedChecks[lead.id]
+  return [lead.id, verifiedCheck
+    ? { ...initialLeadState, qualification: normalizeQualification({ ...initialLeadState.qualification, ...verifiedCheck }) }
+    : initialLeadState]
+}))
 const appStorageKey = 'seu-site-pode-comecar-aqui-state'
 const previousAppStorageKey = 'prospecta-campinas-state'
 const importedLeadsStorageKey = 'site-start-imported-leads'
