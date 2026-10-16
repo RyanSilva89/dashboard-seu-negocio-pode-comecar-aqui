@@ -1,5 +1,6 @@
-import { BadgeCheck, CalendarClock, CircleAlert, ClipboardCheck, ShieldCheck, Target } from 'lucide-react'
+import { BadgeCheck, CalendarClock, CircleAlert, ClipboardCheck, FileText, ShieldCheck, Target } from 'lucide-react'
 import {
+  generatePainReport,
   getClientConfirmationBonus,
   getContactReadinessSuggestions,
   getInterestTemperature,
@@ -208,6 +209,21 @@ export default function LeadQualificationPanel({ lead, qualification, contactMad
         </>}
         <div className={`temperature-banner ${temperature.className}`}><CircleAlert size={15} /><span><strong>{temperature.label}</strong><small>Registre apenas o que ocorreu; o score não altera essa temperatura.</small></span></div>
       </> : <p className="field-footnote">O registro de resposta e interesse ficará disponível após mover o lead para “Contato feito”. Não é obrigatório para liberar ou registrar o primeiro contato.</p>}
+
+      <div className="validation-subheading"><strong>5. Relatório da dor do cliente</strong><span>Registre somente uma dificuldade relatada pelo responsável; sinais públicos não comprovam uma dor.</span></div>
+      <label className="field-label">Dor/necessidade relatada pelo negócio<textarea value={qualification.reportedPain} onChange={(event) => onChange({ reportedPain: event.target.value })} placeholder="Ex.: o responsável relatou que pedidos recebidos pelo Instagram ficam sem acompanhamento." rows={3} /></label>
+      <small className="field-footnote">Não presuma uma necessidade com base no site e não inclua dados pessoais, dados de pacientes ou informações de saúde.</small>
+      <div className="verification-register-row">
+        <button className="button-outline" type="button" onClick={() => onChange({
+          painReport: generatePainReport({
+            name: lead.name,
+            city: lead.city ?? 'Não informada',
+            niche: lead.niche ?? lead.specialty,
+          }, qualification, localToday()),
+        })}><FileText size={14} /> Gerar relatório da dor</button>
+        <span>O relatório diferencia relato confirmado de anotação pendente.</span>
+      </div>
+      {qualification.painReport && <label className="field-label">Relatório gerado<textarea value={qualification.painReport} readOnly rows={9} /></label>}
 
       <div className="ready-gate">
         <button className="button-primary" type="button" onClick={onMarkReady}><BadgeCheck size={15} /> Marcar “Pronto para contato”</button>

@@ -32,6 +32,8 @@ export type LeadQualification = {
   interestStatus: InterestStatus
   interestEvidence: string
   interestDate: string
+  reportedPain: string
+  painReport: string
 }
 
 export type ScoreLine = { label: string; points: number; detail: string }
@@ -81,6 +83,8 @@ export function createDefaultQualification(): LeadQualification {
     interestStatus: 'no-response',
     interestEvidence: '',
     interestDate: '',
+    reportedPain: '',
+    painReport: '',
   }
 }
 
@@ -141,7 +145,41 @@ export function normalizeQualification(value: unknown): LeadQualification {
     interestStatus: interestStatuses.includes(input.interestStatus as InterestStatus) ? input.interestStatus as InterestStatus : 'no-response',
     interestEvidence: typeof input.interestEvidence === 'string' ? input.interestEvidence : '',
     interestDate: typeof input.interestDate === 'string' ? input.interestDate : '',
+    reportedPain: typeof input.reportedPain === 'string' ? input.reportedPain : '',
+    painReport: typeof input.painReport === 'string' ? input.painReport : '',
   }
+}
+
+export function generatePainReport(
+  lead: { name: string; city: string; niche: string },
+  qualification: LeadQualification,
+  generatedDate: string,
+) {
+  const hasDocumentedNeed = hasClientConfirmedService(qualification)
+  const pain = qualification.reportedPain.trim()
+  const publicSignals = serviceOptions.flatMap(({ id, label }) => {
+    const assessment = qualification.opportunities[id]
+    if (assessment.status !== 'public-signal' || !assessment.evidenceNote.trim()) return []
+    const source = assessment.evidenceSource.trim() ? ` Fonte: ${assessment.evidenceSource.trim()}` : ''
+    return [`- ${label}: ${assessment.evidenceNote.trim()}${source}`]
+  })
+
+  return [
+    'RELATÓRIO DE NECESSIDADE DO NEGÓCIO',
+    `Lead: ${lead.name}`,
+    `Cidade: ${lead.city}`,
+    `Nicho: ${lead.niche}`,
+    `Dor relatada: ${pain
+      ? `${hasDocumentedNeed ? 'necessidade vinculada a interação documentada' : 'anotação ainda não confirmada pelo negócio'} — ${pain}`
+      : 'não identificada/confirmada; não inferir uma dor a partir de sinais públicos.'}`,
+    `Interação registrada: ${qualification.interestEvidence.trim() || 'nenhuma'}`,
+    `Data da interação: ${qualification.interestDate || 'não informada'}`,
+    'Sinais públicos (não comprovam uma dor):',
+    ...(publicSignals.length ? publicSignals : ['- Nenhum sinal público registrado.']),
+    `Próximo passo: ${qualification.nextAction.trim() || 'conversar com o responsável e validar se existe uma necessidade.'}`,
+    `Gerado em: ${generatedDate}`,
+    'Não inclua dados pessoais, informações de saúde ou outros dados sensíveis.',
+  ].join('\n')
 }
 
 export function isHttpUrl(value: string) {
