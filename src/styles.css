@@ -829,7 +829,7 @@ html[data-theme='dark'] .manual-lead-form .field-label textarea { border-color: 
 .source-prefill { margin-top: 6px; padding: 0; border: 0; color: #4d7cc0; background: transparent; font-size: 8px; font-weight: 700; text-align: left; }
 .source-prefill:hover { text-decoration: underline; }
 .verification-register-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
-.verification-register-row .button-outline { min-height: 31px; padding: 0 9px; font-size: 8px; }
+.verification-register-row .button-outline { min-height: 42px; padding: 0 14px; font-size: 12px; }
 .verification-register-row .button-outline:disabled { cursor: not-allowed; opacity: .48; }
 .verification-register-row > span { color: #929baa; font-size: 8px; text-align: right; }
 .opportunity-assessment { margin-top: 7px; padding: 0 9px 8px; border: 1px solid #edf0f4; border-radius: 9px; background: #fcfdff; }
