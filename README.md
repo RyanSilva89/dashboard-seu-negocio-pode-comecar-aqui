@@ -4,9 +4,15 @@ Painel pessoal de prospecção digital em português do Brasil, feito para centr
 
 ## Desenvolvimento
 
-- `pnpm install`
-- `pnpm dev`
-- `pnpm build`
+Este projeto usa React, TypeScript e Vite. **Não abra `index.html` com a extensão Live Server**: ela não compila os arquivos `.tsx` do app.
+
+Com Node.js instalado, na raiz do projeto execute:
+
+1. `corepack pnpm install`
+2. `corepack pnpm dev`
+3. Abra `http://localhost:3000` no navegador. Mantenha o terminal aberto enquanto estiver usando o app.
+
+Para validar a versão de produção, execute `corepack pnpm build`.
 
 Leads importados, CRM, cidades/nichos-alvo e configurações do mascote são armazenados em `localStorage` neste navegador/dispositivo; não há sincronização com nuvem ou GitHub. Limpar os dados do navegador pode apagá-los.
 
